@@ -3,6 +3,9 @@
  */
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { EnemyGrunt } from './EnemyGrunt.js';
+import { EnemySoldier } from './EnemySoldier.js';
+import { EnemySniper } from './EnemySniper.js';
+import { EnemyHeavy } from './EnemyHeavy.js';
 
 export class EnemySpawner {
     /**
@@ -33,16 +36,37 @@ export class EnemySpawner {
     /**
      * Spawn a single enemy at a specific position.
      * @param {Vector3} position - Where to spawn
-     * @returns {EnemyGrunt} The spawned enemy
+     * @param {string} type - Enemy type: 'grunt', 'soldier', 'sniper', 'heavy'
+     * @returns {EnemyBase} The spawned enemy
      */
-    spawnEnemy(position) {
+    spawnEnemy(position, type = 'grunt') {
         this.enemyCounter++;
 
-        const enemy = new EnemyGrunt(this.scene, position, {
-            name: `Grunt_${this.enemyCounter}`,
+        let enemy;
+        const options = {
             getPlayerPosition: this.getPlayerPosition,
             onDeath: (deadEnemy) => this.handleEnemyDeath(deadEnemy),
-        });
+        };
+
+        switch (type.toLowerCase()) {
+            case 'soldier':
+                options.name = `Soldier_${this.enemyCounter}`;
+                enemy = new EnemySoldier(this.scene, position, options);
+                break;
+            case 'sniper':
+                options.name = `Sniper_${this.enemyCounter}`;
+                enemy = new EnemySniper(this.scene, position, options);
+                break;
+            case 'heavy':
+                options.name = `Heavy_${this.enemyCounter}`;
+                enemy = new EnemyHeavy(this.scene, position, options);
+                break;
+            case 'grunt':
+            default:
+                options.name = `Grunt_${this.enemyCounter}`;
+                enemy = new EnemyGrunt(this.scene, position, options);
+                break;
+        }
 
         this.activeEnemies.push(enemy);
 
@@ -60,14 +84,15 @@ export class EnemySpawner {
      * Spawn multiple enemies with slight delay between each.
      * @param {number} count - Number of enemies to spawn
      * @param {number} delay - Delay between spawns in ms (default 300)
+     * @param {string} type - Enemy type (default 'grunt')
      */
-    spawnWave(count, delay = 300) {
-        console.log(`Spawning wave of ${count} enemies...`);
+    spawnWave(count, delay = 300, type = 'grunt') {
+        console.log(`Spawning wave of ${count} ${type} enemies...`);
 
         for (let i = 0; i < count; i++) {
             setTimeout(() => {
                 const position = this.getRandomSpawnPoint();
-                this.spawnEnemy(position);
+                this.spawnEnemy(position, type);
             }, i * delay);
         }
     }
@@ -76,15 +101,49 @@ export class EnemySpawner {
      * Spawn enemies with staggered timing (alias for spawnWave with custom delay).
      * @param {number} count - Number of enemies to spawn
      * @param {number} delayBetween - Delay between spawns in ms
+     * @param {string} type - Enemy type (default 'grunt')
      */
-    spawnWaveWithDelay(count, delayBetween = 500) {
-        console.log(`Spawning wave of ${count} enemies (${delayBetween}ms apart)...`);
+    spawnWaveWithDelay(count, delayBetween = 500, type = 'grunt') {
+        console.log(`Spawning wave of ${count} ${type} enemies (${delayBetween}ms apart)...`);
 
         for (let i = 0; i < count; i++) {
             setTimeout(() => {
                 if (this.scene && !this.scene.isDisposed) {
                     const position = this.getRandomSpawnPoint();
-                    this.spawnEnemy(position);
+                    this.spawnEnemy(position, type);
+                }
+            }, i * delayBetween);
+        }
+    }
+
+    /**
+     * Spawn a wave with mixed enemy types.
+     * @param {Object} enemyCounts - Object with enemy type counts, e.g., { grunt: 3, soldier: 2 }
+     * @param {number} delayBetween - Delay between spawns in ms
+     */
+    spawnWaveWithTypes(enemyCounts, delayBetween = 500) {
+        // Build array of enemy types to spawn
+        const enemies = [];
+        for (const [type, count] of Object.entries(enemyCounts)) {
+            for (let i = 0; i < count; i++) {
+                enemies.push(type);
+            }
+        }
+
+        // Shuffle for variety
+        for (let i = enemies.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [enemies[i], enemies[j]] = [enemies[j], enemies[i]];
+        }
+
+        console.log(`Spawning mixed wave: ${JSON.stringify(enemyCounts)} (${enemies.length} total)`);
+
+        // Spawn with delay
+        for (let i = 0; i < enemies.length; i++) {
+            setTimeout(() => {
+                if (this.scene && !this.scene.isDisposed) {
+                    const position = this.getRandomSpawnPoint();
+                    this.spawnEnemy(position, enemies[i]);
                 }
             }, i * delayBetween);
         }

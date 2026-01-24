@@ -54,6 +54,54 @@ export class WaveManager {
     }
 
     /**
+     * Get wave composition based on wave number.
+     * Wave 1-3: Grunts only
+     * Wave 4-6: Grunts + Soldiers
+     * Wave 7-9: Grunts + Soldiers + Snipers
+     * Wave 10+: All types including Heavy
+     * @param {number} waveNumber
+     * @returns {Object} Enemy type counts { grunt: N, soldier: N, ... }
+     */
+    getWaveComposition(waveNumber) {
+        const totalEnemies = this.calculateEnemyCount(waveNumber);
+        const composition = { grunt: 0, soldier: 0, sniper: 0, heavy: 0 };
+
+        if (waveNumber <= 3) {
+            // Waves 1-3: Only grunts
+            composition.grunt = totalEnemies;
+        } else if (waveNumber <= 6) {
+            // Waves 4-6: 60% grunts, 40% soldiers
+            composition.grunt = Math.ceil(totalEnemies * 0.6);
+            composition.soldier = totalEnemies - composition.grunt;
+        } else if (waveNumber <= 9) {
+            // Waves 7-9: 50% grunts, 30% soldiers, 20% snipers
+            composition.grunt = Math.ceil(totalEnemies * 0.5);
+            composition.soldier = Math.ceil(totalEnemies * 0.3);
+            composition.sniper = totalEnemies - composition.grunt - composition.soldier;
+        } else {
+            // Wave 10+: 40% grunts, 25% soldiers, 20% snipers, 15% heavy
+            composition.grunt = Math.ceil(totalEnemies * 0.4);
+            composition.soldier = Math.ceil(totalEnemies * 0.25);
+            composition.sniper = Math.ceil(totalEnemies * 0.2);
+            composition.heavy = totalEnemies - composition.grunt - composition.soldier - composition.sniper;
+            // Ensure at least 1 heavy in wave 10+
+            if (composition.heavy < 1) {
+                composition.heavy = 1;
+                composition.grunt--;
+            }
+        }
+
+        // Remove zero counts
+        for (const type in composition) {
+            if (composition[type] <= 0) {
+                delete composition[type];
+            }
+        }
+
+        return composition;
+    }
+
+    /**
      * Start the wave system.
      */
     start() {
@@ -68,20 +116,24 @@ export class WaveManager {
         this.currentWave++;
         this.waveState = 'spawning';
 
-        const enemyCount = this.calculateEnemyCount(this.currentWave);
+        // Get wave composition based on wave number
+        const composition = this.getWaveComposition(this.currentWave);
+        const enemyCount = Object.values(composition).reduce((a, b) => a + b, 0);
+
         this.enemiesSpawned = enemyCount;
         this.enemiesKilled = 0;
         this.enemiesRemaining = enemyCount;
 
         console.log(`=== WAVE ${this.currentWave} === (${enemyCount} enemies)`);
+        console.log('Composition:', composition);
 
         // Notify listeners
         if (this.onWaveStart) {
             this.onWaveStart(this.currentWave, enemyCount);
         }
 
-        // Spawn enemies with staggered timing
-        this.spawner.spawnWaveWithDelay(enemyCount, 500);
+        // Spawn enemies with mixed types
+        this.spawner.spawnWaveWithTypes(composition, 500);
 
         // Transition to inProgress once spawning begins
         this.waveState = 'inProgress';
