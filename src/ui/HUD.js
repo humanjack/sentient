@@ -29,6 +29,7 @@ export class HUD {
         this.createDamageFlash();
         this.createWeaponDisplay();
         this.createControlsIndicator();
+        this.createAbilityDisplay();
 
         // Track active popups for cleanup
         this.activePopups = [];
@@ -522,9 +523,170 @@ export class HUD {
      */
     updateControlScheme(scheme) {
         if (scheme === 'wasd') {
-            this.controlsText.text = '[C] Controls: WASD';
+            this.controlsText.text = '[T] Controls: WASD';
         } else {
-            this.controlsText.text = '[C] Controls: Arrow Keys';
+            this.controlsText.text = '[T] Controls: Arrow Keys';
+        }
+    }
+
+    /**
+     * Create ability display (bottom center).
+     */
+    createAbilityDisplay() {
+        // Container for abilities
+        this.abilityContainer = new StackPanel('abilityContainer');
+        this.abilityContainer.isVertical = false;
+        this.abilityContainer.width = '400px';
+        this.abilityContainer.height = '80px';
+        this.abilityContainer.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        this.abilityContainer.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+        this.abilityContainer.top = '-40px';
+
+        this.gui.addControl(this.abilityContainer);
+
+        // Ability boxes (Q, E, C, X)
+        this.abilityBoxes = {};
+        const abilityKeys = ['Q', 'E', 'C', 'X'];
+        const colors = {
+            Q: '#ffff44', // Yellow - flashbang
+            E: '#44aaff', // Blue - dash
+            C: '#ff6622', // Orange - fire wall
+            X: '#ff4444', // Red - ultimate
+        };
+
+        for (const key of abilityKeys) {
+            const box = new Rectangle(`ability_${key}`);
+            box.width = '60px';
+            box.height = '60px';
+            box.thickness = 2;
+            box.color = colors[key];
+            box.background = 'rgba(0, 0, 0, 0.6)';
+            box.cornerRadius = 8;
+            box.paddingLeft = '5px';
+            box.paddingRight = '5px';
+
+            this.abilityContainer.addControl(box);
+
+            // Key label
+            const keyText = new TextBlock(`abilityKey_${key}`);
+            keyText.text = key;
+            keyText.color = colors[key];
+            keyText.fontSize = 24;
+            keyText.fontFamily = 'Courier New, monospace';
+            keyText.fontWeight = 'bold';
+            keyText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+            keyText.top = '5px';
+
+            box.addControl(keyText);
+
+            // Cooldown overlay
+            const cooldownOverlay = new Rectangle(`cooldown_${key}`);
+            cooldownOverlay.width = '100%';
+            cooldownOverlay.height = '100%';
+            cooldownOverlay.background = 'rgba(0, 0, 0, 0.7)';
+            cooldownOverlay.thickness = 0;
+            cooldownOverlay.isVisible = false;
+
+            box.addControl(cooldownOverlay);
+
+            // Cooldown text
+            const cooldownText = new TextBlock(`cooldownText_${key}`);
+            cooldownText.text = '';
+            cooldownText.color = 'white';
+            cooldownText.fontSize = 20;
+            cooldownText.fontFamily = 'Courier New, monospace';
+            cooldownText.fontWeight = 'bold';
+
+            cooldownOverlay.addControl(cooldownText);
+
+            this.abilityBoxes[key] = {
+                box,
+                keyText,
+                cooldownOverlay,
+                cooldownText,
+                baseColor: colors[key],
+            };
+        }
+
+        // Ultimate charge bar (below abilities)
+        this.createUltimateBar();
+    }
+
+    /**
+     * Create ultimate charge bar.
+     */
+    createUltimateBar() {
+        this.ultimateBarContainer = new Rectangle('ultBarContainer');
+        this.ultimateBarContainer.width = '300px';
+        this.ultimateBarContainer.height = '15px';
+        this.ultimateBarContainer.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        this.ultimateBarContainer.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+        this.ultimateBarContainer.top = '-25px';
+        this.ultimateBarContainer.background = 'rgba(50, 20, 20, 0.8)';
+        this.ultimateBarContainer.thickness = 2;
+        this.ultimateBarContainer.color = '#ff4444';
+        this.ultimateBarContainer.cornerRadius = 4;
+
+        this.gui.addControl(this.ultimateBarContainer);
+
+        // Fill bar
+        this.ultimateBarFill = new Rectangle('ultBarFill');
+        this.ultimateBarFill.width = '0%';
+        this.ultimateBarFill.height = '100%';
+        this.ultimateBarFill.background = '#ff4444';
+        this.ultimateBarFill.thickness = 0;
+        this.ultimateBarFill.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+
+        this.ultimateBarContainer.addControl(this.ultimateBarFill);
+
+        // Label
+        this.ultimateLabel = new TextBlock('ultLabel');
+        this.ultimateLabel.text = 'ULTIMATE';
+        this.ultimateLabel.color = 'white';
+        this.ultimateLabel.fontSize = 10;
+        this.ultimateLabel.fontFamily = 'Courier New, monospace';
+
+        this.ultimateBarContainer.addControl(this.ultimateLabel);
+    }
+
+    /**
+     * Update abilities display.
+     * @param {Array} abilitiesInfo - Array of ability info objects
+     * @param {number} ultimateCharge - Current ultimate charge (0-100)
+     */
+    updateAbilities(abilitiesInfo, ultimateCharge) {
+        // Update each ability box
+        for (const info of abilitiesInfo) {
+            const boxData = this.abilityBoxes[info.key];
+            if (!boxData) continue;
+
+            if (info.isReady) {
+                // Ability ready
+                boxData.cooldownOverlay.isVisible = false;
+                boxData.box.background = 'rgba(0, 0, 0, 0.6)';
+
+                // Pulse effect for ultimate when ready
+                if (info.isUltimate && ultimateCharge >= 100) {
+                    const pulse = 0.5 + Math.sin(Date.now() * 0.005) * 0.3;
+                    boxData.box.background = `rgba(255, 68, 68, ${pulse})`;
+                }
+            } else {
+                // On cooldown
+                boxData.cooldownOverlay.isVisible = true;
+                boxData.cooldownText.text = info.remainingCooldown.toString();
+            }
+        }
+
+        // Update ultimate bar
+        const chargePercent = Math.min(100, Math.max(0, ultimateCharge));
+        this.ultimateBarFill.width = `${chargePercent}%`;
+
+        if (chargePercent >= 100) {
+            this.ultimateLabel.text = 'ULTIMATE READY!';
+            this.ultimateBarFill.background = '#ff8844';
+        } else {
+            this.ultimateLabel.text = `ULTIMATE ${Math.floor(chargePercent)}%`;
+            this.ultimateBarFill.background = '#ff4444';
         }
     }
 

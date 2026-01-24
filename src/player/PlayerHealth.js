@@ -21,6 +21,7 @@ export class PlayerHealth {
 
         // Status
         this.isAlive = true;
+        this.isInvincible = false;
 
         // Callbacks
         this.onHealthChanged = options.onHealthChanged || null;
@@ -32,11 +33,25 @@ export class PlayerHealth {
     }
 
     /**
+     * Set invincibility state (for abilities like dash).
+     * @param {boolean} invincible
+     */
+    setInvincible(invincible) {
+        this.isInvincible = invincible;
+    }
+
+    /**
      * Take damage - shield absorbs first, then health.
      * @param {number} amount - Damage amount
      */
     takeDamage(amount) {
         if (!this.isAlive || amount <= 0) return;
+
+        // Skip damage if invincible
+        if (this.isInvincible) {
+            console.log('Damage blocked - invincible!');
+            return;
+        }
 
         let remaining = amount;
 

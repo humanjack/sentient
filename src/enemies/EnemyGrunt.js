@@ -107,7 +107,22 @@ export class EnemyGrunt extends EnemyBase {
      * @param {number} deltaTime - Time since last frame
      */
     update(deltaTime) {
+        // Call base update (handles stun countdown)
+        super.update(deltaTime);
+
         if (!this.isAlive || !this.mesh) return;
+
+        // Skip AI if stunned
+        if (this.isStunned) {
+            // Visual feedback for stun
+            if (this.mesh.material) {
+                this.mesh.material.emissiveColor = new Color3(0.5, 0.5, 0.1);
+            }
+            return;
+        } else if (this.mesh.material) {
+            // Reset to normal color
+            this.mesh.material.emissiveColor = new Color3(0.2, 0.05, 0.05);
+        }
 
         // Update attack cooldown
         if (this.attackCooldown > 0) {

@@ -29,6 +29,8 @@ export class EnemyBase {
         // State
         this.isAlive = true;
         this.mesh = null;
+        this.isStunned = false;
+        this.stunDuration = 0;
 
         // Camera target - enemies have priority 1 (preferred over security cams)
         this.cameraTarget = new CameraTarget({
@@ -109,11 +111,39 @@ export class EnemyBase {
     }
 
     /**
+     * Stun the enemy for a duration.
+     * @param {number} duration - Stun duration in seconds
+     */
+    stun(duration) {
+        this.isStunned = true;
+        this.stunDuration = Math.max(this.stunDuration, duration);
+        console.log(`${this.cameraTarget.name} stunned for ${duration}s`);
+    }
+
+    /**
+     * Update stun state.
+     * @param {number} deltaTime
+     */
+    updateStun(deltaTime) {
+        if (this.isStunned) {
+            this.stunDuration -= deltaTime;
+            if (this.stunDuration <= 0) {
+                this.isStunned = false;
+                this.stunDuration = 0;
+                console.log(`${this.cameraTarget.name} recovered from stun`);
+            }
+        }
+    }
+
+    /**
      * Update enemy AI. Override in subclasses.
      * @param {number} deltaTime - Time since last frame
      */
     update(deltaTime) {
-        // Subclasses implement AI behavior
+        // Update stun state
+        this.updateStun(deltaTime);
+
+        // Subclasses implement AI behavior (should check isStunned)
     }
 
     /**

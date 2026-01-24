@@ -152,6 +152,14 @@ export class EnemySpawner {
     }
 
     /**
+     * Get all alive enemies.
+     * @returns {EnemyBase[]}
+     */
+    getAliveEnemies() {
+        return this.activeEnemies.filter(e => e.isAlive);
+    }
+
+    /**
      * Update all enemies.
      * @param {number} deltaTime
      */

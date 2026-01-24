@@ -19,6 +19,7 @@ import { DamageSystem } from '../combat/DamageSystem.js';
 
 // Player
 import { WeaponInventory } from '../player/WeaponInventory.js';
+import { AbilitySystem } from '../player/AbilitySystem.js';
 
 // Enemy system
 import { EnemySpawner } from '../enemies/EnemySpawner.js';
@@ -81,6 +82,9 @@ export class Game {
         // Create weapon
         this.setupWeapon();
 
+        // Setup abilities
+        this.setupAbilities();
+
         // Setup enemy spawner
         this.setupSpawner();
 
@@ -102,9 +106,9 @@ export class Game {
         } else {
             console.log('Arrow Keys - Move | Shift - Sprint');
         }
-        console.log('SPACE - Shoot | R - Reload');
-        console.log('1-4 - Switch Weapons | C - Toggle Controls');
-        console.log('B - Open Buy Menu | ESC - Close Menu');
+        console.log('SPACE - Shoot | R - Reload | 1-4 - Switch Weapons');
+        console.log('Q - Flashbang | E - Dash | C - Fire Wall | X - Ultimate');
+        console.log('B - Buy Menu | T - Toggle Controls | ESC - Close');
         console.log('Kill enemies! Third-person view.');
     }
 
@@ -146,6 +150,42 @@ export class Game {
         return this.weaponInventory.getCurrentWeapon();
     }
 
+    setupAbilities() {
+        // Track last movement direction for abilities
+        this.lastMoveDirection = new Vector3(0, 0, 1);
+
+        this.abilitySystem = new AbilitySystem({
+            getPlayerPosition: () => this.getPlayerPosition(),
+            getPlayerDirection: () => this.lastMoveDirection.clone(),
+            setPlayerPosition: (pos) => this.setPlayerPosition(pos),
+            scene: this.scene,
+            getEnemies: () => this.getEnemies(),
+            playerHealth: null, // Will be set after GameManager creates it
+            onUltimateReady: () => {
+                if (this.gameManager && this.gameManager.hud) {
+                    this.gameManager.hud.showMessage('ULTIMATE READY!', 2000);
+                }
+            },
+            onAbilityUsed: (ability) => {
+                console.log(`Used ability: ${ability.name}`);
+            },
+        });
+    }
+
+    setPlayerPosition(pos) {
+        if (this.playerNode) {
+            this.playerNode.position.x = pos.x;
+            this.playerNode.position.z = pos.z;
+        }
+    }
+
+    getEnemies() {
+        if (this.spawner) {
+            return this.spawner.getAliveEnemies();
+        }
+        return [];
+    }
+
     setupSpawner() {
         this.spawner = new EnemySpawner({
             scene: this.scene,
@@ -165,7 +205,13 @@ export class Game {
             damageSystem: this.damageSystem,
             getWeapon: () => this.getCurrentWeapon(),
             getWeaponInventory: () => this.weaponInventory,
+            abilitySystem: this.abilitySystem,
         });
+
+        // Set player health reference in ability system
+        if (this.abilitySystem && this.gameManager.playerHealth) {
+            this.abilitySystem.playerHealth = this.gameManager.playerHealth;
+        }
     }
 
     onWeaponFire() {
@@ -419,9 +465,9 @@ export class Game {
             this.updateHUD();
         }
 
-        // Toggle control scheme (C key)
-        if (this.keys['KeyC']) {
-            this.keys['KeyC'] = false;
+        // Toggle control scheme (T key)
+        if (this.keys['KeyT']) {
+            this.keys['KeyT'] = false;
             const newScheme = this.settings.toggleControlScheme();
             const message = newScheme === 'arrows' ? 'Controls: Arrow Keys' : 'Controls: WASD';
             if (this.gameManager && this.gameManager.hud) {
@@ -431,11 +477,40 @@ export class Game {
             console.log(message);
         }
 
+        // Ability keys (Q, E, C, X)
+        if (this.keys['KeyQ']) {
+            this.keys['KeyQ'] = false;
+            this.abilitySystem.useAbility('KeyQ');
+        }
+        if (this.keys['KeyE']) {
+            this.keys['KeyE'] = false;
+            this.abilitySystem.useAbility('KeyE');
+        }
+        if (this.keys['KeyC']) {
+            this.keys['KeyC'] = false;
+            this.abilitySystem.useAbility('KeyC');
+        }
+        if (this.keys['KeyX']) {
+            this.keys['KeyX'] = false;
+            this.abilitySystem.useAbility('KeyX');
+        }
+
         // Update weapon inventory (for reload timers)
         this.weaponInventory.update();
 
+        // Update ability system (cooldowns)
+        this.abilitySystem.update(dt);
+
         // Update game manager (which updates spawner and enemies)
         this.gameManager.update(dt);
+
+        // Update abilities HUD
+        if (this.gameManager.hud) {
+            this.gameManager.hud.updateAbilities(
+                this.abilitySystem.getAbilitiesInfo(),
+                this.abilitySystem.getUltimateCharge()
+            );
+        }
 
         // Update camera
         this.playerCamera.update(dt);
@@ -465,6 +540,10 @@ export class Game {
         const len = Math.sqrt(mx * mx + mz * mz);
         mx /= len;
         mz /= len;
+
+        // Track movement direction for abilities
+        this.lastMoveDirection.x = mx;
+        this.lastMoveDirection.z = mz;
 
         const speed = this.keys['ShiftLeft'] ? this.sprintSpeed : this.moveSpeed;
         const dx = mx * speed * dt;

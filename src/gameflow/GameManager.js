@@ -32,6 +32,7 @@ export class GameManager {
         this.damageSystem = options.damageSystem;
         this.getWeapon = options.getWeapon || null;
         this.getWeaponInventory = options.getWeaponInventory || null;
+        this.abilitySystem = options.abilitySystem || null;
 
         // Game state
         this.gameState = 'idle'; // 'idle', 'playing', 'paused', 'gameOver'
@@ -338,6 +339,11 @@ export class GameManager {
 
         // Show kill reward popup
         this.hud.showPointPopup(100, '#ffff66');
+
+        // Add ultimate charge
+        if (this.abilitySystem) {
+            this.abilitySystem.addKillCharge();
+        }
 
         // Notify wave manager
         this.waveManager.onEnemyKilled();
