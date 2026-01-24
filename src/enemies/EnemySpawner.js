@@ -6,6 +6,7 @@ import { EnemyGrunt } from './EnemyGrunt.js';
 import { EnemySoldier } from './EnemySoldier.js';
 import { EnemySniper } from './EnemySniper.js';
 import { EnemyHeavy } from './EnemyHeavy.js';
+import { EnemyBoss } from './EnemyBoss.js';
 
 export class EnemySpawner {
     /**
@@ -28,6 +29,11 @@ export class EnemySpawner {
 
         // Active enemies
         this.activeEnemies = [];
+
+        // Boss tracking
+        this.currentBoss = null;
+        this.onBossCreated = options.onBossCreated || null;
+        this.onBossDeath = options.onBossDeath || null;
 
         // Spawn tracking
         this.enemyCounter = 0;
@@ -147,6 +153,80 @@ export class EnemySpawner {
                 }
             }, i * delayBetween);
         }
+    }
+
+    /**
+     * Spawn the boss enemy.
+     * @param {Vector3} position - Where to spawn (optional, defaults to center-ish)
+     * @returns {EnemyBoss} The spawned boss
+     */
+    spawnBoss(position = null) {
+        // Default position - center of arena, offset
+        if (!position) {
+            position = new Vector3(0, 0, 15);
+        }
+
+        this.enemyCounter++;
+
+        const boss = new EnemyBoss(this.scene, position, {
+            name: 'Watcher',
+            getPlayerPosition: this.getPlayerPosition,
+            spawner: this, // Pass spawner for minion spawning
+            onDeath: (deadBoss) => this.handleBossDeath(deadBoss),
+            onBossHealthChanged: (current, max) => {
+                // This will be connected to HUD by GameManager
+                if (this.onBossHealthChanged) {
+                    this.onBossHealthChanged(current, max);
+                }
+            },
+        });
+
+        this.activeEnemies.push(boss);
+        this.currentBoss = boss;
+
+        // Notify listeners
+        if (this.onEnemyCreated) {
+            this.onEnemyCreated(boss);
+        }
+        if (this.onBossCreated) {
+            this.onBossCreated(boss);
+        }
+
+        console.log(`BOSS SPAWNED: ${boss.cameraTarget.name} at (${position.x.toFixed(1)}, ${position.z.toFixed(1)})`);
+
+        return boss;
+    }
+
+    /**
+     * Handle boss death specifically.
+     * @param {EnemyBoss} boss
+     */
+    handleBossDeath(boss) {
+        this.currentBoss = null;
+
+        // Notify boss-specific listener
+        if (this.onBossDeath) {
+            this.onBossDeath(boss);
+        }
+
+        // Also handle as normal enemy death
+        this.handleEnemyDeath(boss);
+    }
+
+    /**
+     * Get current boss if alive.
+     * @returns {EnemyBoss|null}
+     */
+    getCurrentBoss() {
+        return this.currentBoss;
+    }
+
+    /**
+     * Check if boss is currently alive.
+     * @returns {boolean}
+     */
+    isBossAlive() {
+        return this.currentBoss !== null && this.currentBoss.isAlive;
     }
 
     /**

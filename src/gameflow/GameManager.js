@@ -77,7 +77,16 @@ export class GameManager {
             onBuyPhaseStart: (duration) => this.handleBuyPhaseStart(duration),
             onBuyPhaseEnd: () => this.handleBuyPhaseEnd(),
             onEnemyCountChange: (count) => this.handleEnemyCountChange(count),
+            onBossWaveStart: (wave) => this.handleBossWaveStart(wave),
+            onBossDefeated: (wave) => this.handleBossDefeated(wave),
         });
+
+        // Setup spawner boss callbacks
+        if (this.spawner) {
+            this.spawner.onBossCreated = (boss) => this.handleBossCreated(boss);
+            this.spawner.onBossDeath = (boss) => this.handleBossDeath(boss);
+            this.spawner.onBossHealthChanged = (current, max) => this.handleBossHealthChanged(current, max);
+        }
 
         // Create Buy Phase Manager
         this.buyPhase = new BuyPhase({
@@ -304,6 +313,80 @@ export class GameManager {
      */
     handleEnemyCountChange(count) {
         this.hud.updateEnemyCount(count);
+    }
+
+    /**
+     * Handle boss wave start.
+     * @param {number} wave
+     */
+    handleBossWaveStart(wave) {
+        this.hud.showMessage('BOSS WAVE!', 3000);
+    }
+
+    /**
+     * Handle boss created.
+     * @param {EnemyBoss} boss
+     */
+    handleBossCreated(boss) {
+        console.log('Boss created - showing health bar');
+
+        // Show boss health bar
+        this.hud.showBossHealth('WATCHER', boss.health, boss.maxHealth);
+
+        // Register drone camera target (priority 0)
+        if (this.camera && boss.getDroneCameraTarget) {
+            const droneTarget = boss.getDroneCameraTarget();
+            if (droneTarget) {
+                this.camera.registerTarget(droneTarget);
+            }
+        }
+
+        // Set up boss health change callback
+        boss.onBossHealthChanged = (current, max) => {
+            this.hud.updateBossHealth(current, max);
+        };
+    }
+
+    /**
+     * Handle boss health changed.
+     * @param {number} current
+     * @param {number} max
+     */
+    handleBossHealthChanged(current, max) {
+        this.hud.updateBossHealth(current, max);
+    }
+
+    /**
+     * Handle boss death.
+     * @param {EnemyBoss} boss
+     */
+    handleBossDeath(boss) {
+        console.log('Boss defeated!');
+
+        // Hide boss health bar
+        this.hud.hideBossHealth();
+
+        // Unregister drone camera
+        if (this.camera && boss.getDroneCameraTarget) {
+            const droneTarget = boss.getDroneCameraTarget();
+            if (droneTarget) {
+                this.camera.onTargetDestroyed(droneTarget);
+            }
+        }
+
+        // Notify wave manager
+        if (this.waveManager) {
+            this.waveManager.onBossKilled();
+        }
+    }
+
+    /**
+     * Handle boss defeated (from wave manager).
+     * @param {number} wave
+     */
+    handleBossDefeated(wave) {
+        this.hud.showMessage('BOSS DEFEATED!', 3000);
+        this.hud.showPointPopup(1000, '#ff88ff');
     }
 
     /**

@@ -41,7 +41,23 @@ export class WaveManager {
         this.enemiesKilled = 0;
         this.enemiesRemaining = 0;
 
+        // Boss tracking
+        this.isBossWave = false;
+        this.bossDefeated = false;
+        this.onBossWaveStart = options.onBossWaveStart || null;
+        this.onBossDefeated = options.onBossDefeated || null;
+
         console.log('WaveManager initialized');
+    }
+
+    /**
+     * Check if a wave is a boss wave.
+     * @param {number} waveNumber
+     * @returns {boolean}
+     */
+    isBossWaveNumber(waveNumber) {
+        // Boss appears every 10 waves (10, 20, 30...)
+        return waveNumber > 0 && waveNumber % 10 === 0;
     }
 
     /**
@@ -115,28 +131,66 @@ export class WaveManager {
     startNextWave() {
         this.currentWave++;
         this.waveState = 'spawning';
+        this.bossDefeated = false;
 
-        // Get wave composition based on wave number
-        const composition = this.getWaveComposition(this.currentWave);
-        const enemyCount = Object.values(composition).reduce((a, b) => a + b, 0);
+        // Check if this is a boss wave
+        this.isBossWave = this.isBossWaveNumber(this.currentWave);
 
-        this.enemiesSpawned = enemyCount;
-        this.enemiesKilled = 0;
-        this.enemiesRemaining = enemyCount;
+        if (this.isBossWave) {
+            // Boss wave - spawn boss only (boss spawns minions)
+            this.enemiesSpawned = 1;
+            this.enemiesKilled = 0;
+            this.enemiesRemaining = 1;
 
-        console.log(`=== WAVE ${this.currentWave} === (${enemyCount} enemies)`);
-        console.log('Composition:', composition);
+            console.log(`=== BOSS WAVE ${this.currentWave} === THE WATCHER`);
 
-        // Notify listeners
-        if (this.onWaveStart) {
-            this.onWaveStart(this.currentWave, enemyCount);
+            // Notify listeners
+            if (this.onWaveStart) {
+                this.onWaveStart(this.currentWave, 1);
+            }
+            if (this.onBossWaveStart) {
+                this.onBossWaveStart(this.currentWave);
+            }
+
+            // Spawn the boss
+            this.spawner.spawnBoss();
+        } else {
+            // Normal wave - get wave composition based on wave number
+            const composition = this.getWaveComposition(this.currentWave);
+            const enemyCount = Object.values(composition).reduce((a, b) => a + b, 0);
+
+            this.enemiesSpawned = enemyCount;
+            this.enemiesKilled = 0;
+            this.enemiesRemaining = enemyCount;
+
+            console.log(`=== WAVE ${this.currentWave} === (${enemyCount} enemies)`);
+            console.log('Composition:', composition);
+
+            // Notify listeners
+            if (this.onWaveStart) {
+                this.onWaveStart(this.currentWave, enemyCount);
+            }
+
+            // Spawn enemies with mixed types
+            this.spawner.spawnWaveWithTypes(composition, 500);
         }
-
-        // Spawn enemies with mixed types
-        this.spawner.spawnWaveWithTypes(composition, 500);
 
         // Transition to inProgress once spawning begins
         this.waveState = 'inProgress';
+    }
+
+    /**
+     * Called when boss is defeated.
+     */
+    onBossKilled() {
+        this.bossDefeated = true;
+
+        if (this.onBossDefeated) {
+            this.onBossDefeated(this.currentWave);
+        }
+
+        // Boss counts as wave clear
+        this.onWaveCleared();
     }
 
     /**

@@ -30,6 +30,7 @@ export class HUD {
         this.createWeaponDisplay();
         this.createControlsIndicator();
         this.createAbilityDisplay();
+        this.createBossHealthBar();
 
         // Track active popups for cleanup
         this.activePopups = [];
@@ -688,6 +689,113 @@ export class HUD {
             this.ultimateLabel.text = `ULTIMATE ${Math.floor(chargePercent)}%`;
             this.ultimateBarFill.background = '#ff4444';
         }
+    }
+
+    /**
+     * Create boss health bar (top center, hidden by default).
+     */
+    createBossHealthBar() {
+        // Container for boss health
+        this.bossHealthContainer = new Rectangle('bossHealthContainer');
+        this.bossHealthContainer.width = '500px';
+        this.bossHealthContainer.height = '70px';
+        this.bossHealthContainer.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        this.bossHealthContainer.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+        this.bossHealthContainer.top = '60px';
+        this.bossHealthContainer.background = 'rgba(0, 0, 0, 0.7)';
+        this.bossHealthContainer.thickness = 3;
+        this.bossHealthContainer.color = '#ff00ff';
+        this.bossHealthContainer.cornerRadius = 8;
+        this.bossHealthContainer.isVisible = false;
+
+        this.gui.addControl(this.bossHealthContainer);
+
+        // Boss name
+        this.bossNameText = new TextBlock('bossNameText');
+        this.bossNameText.text = 'WATCHER';
+        this.bossNameText.color = '#ff88ff';
+        this.bossNameText.fontSize = 24;
+        this.bossNameText.fontFamily = 'Courier New, monospace';
+        this.bossNameText.fontWeight = 'bold';
+        this.bossNameText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+        this.bossNameText.top = '5px';
+        this.bossNameText.shadowColor = 'black';
+        this.bossNameText.shadowBlur = 4;
+
+        this.bossHealthContainer.addControl(this.bossNameText);
+
+        // Boss health bar background
+        this.bossHealthBarBg = new Rectangle('bossHealthBarBg');
+        this.bossHealthBarBg.width = '480px';
+        this.bossHealthBarBg.height = '25px';
+        this.bossHealthBarBg.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+        this.bossHealthBarBg.top = '-10px';
+        this.bossHealthBarBg.background = '#331133';
+        this.bossHealthBarBg.thickness = 2;
+        this.bossHealthBarBg.color = '#884488';
+        this.bossHealthBarBg.cornerRadius = 4;
+
+        this.bossHealthContainer.addControl(this.bossHealthBarBg);
+
+        // Boss health bar fill
+        this.bossHealthBarFill = new Rectangle('bossHealthBarFill');
+        this.bossHealthBarFill.width = '100%';
+        this.bossHealthBarFill.height = '100%';
+        this.bossHealthBarFill.background = '#ff44ff';
+        this.bossHealthBarFill.thickness = 0;
+        this.bossHealthBarFill.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+        this.bossHealthBarFill.cornerRadius = 2;
+
+        this.bossHealthBarBg.addControl(this.bossHealthBarFill);
+
+        // Boss health text
+        this.bossHealthText = new TextBlock('bossHealthText');
+        this.bossHealthText.text = '500 / 500';
+        this.bossHealthText.color = 'white';
+        this.bossHealthText.fontSize = 16;
+        this.bossHealthText.fontFamily = 'Courier New, monospace';
+        this.bossHealthText.fontWeight = 'bold';
+
+        this.bossHealthBarBg.addControl(this.bossHealthText);
+    }
+
+    /**
+     * Show boss health bar.
+     * @param {string} name - Boss name
+     * @param {number} current - Current health
+     * @param {number} max - Maximum health
+     */
+    showBossHealth(name, current, max) {
+        this.bossNameText.text = name.toUpperCase();
+        this.updateBossHealth(current, max);
+        this.bossHealthContainer.isVisible = true;
+    }
+
+    /**
+     * Update boss health bar.
+     * @param {number} current - Current health
+     * @param {number} max - Maximum health
+     */
+    updateBossHealth(current, max) {
+        const percent = Math.max(0, current / max);
+        this.bossHealthBarFill.width = `${Math.floor(percent * 100)}%`;
+        this.bossHealthText.text = `${Math.max(0, Math.floor(current))} / ${max}`;
+
+        // Change color based on health
+        if (percent > 0.5) {
+            this.bossHealthBarFill.background = '#ff44ff'; // Purple
+        } else if (percent > 0.25) {
+            this.bossHealthBarFill.background = '#ff8844'; // Orange
+        } else {
+            this.bossHealthBarFill.background = '#ff4444'; // Red - critical
+        }
+    }
+
+    /**
+     * Hide boss health bar.
+     */
+    hideBossHealth() {
+        this.bossHealthContainer.isVisible = false;
     }
 
     /**
