@@ -104,25 +104,15 @@ export class Game {
         // Setup game manager
         this.setupGameManager();
 
-        // Start the game!
-        this.gameManager.startGame();
-
         // Initialize HUD with current control scheme
         if (this.gameManager.hud) {
             this.gameManager.hud.updateControlScheme(this.settings.getControlScheme());
         }
 
+        // Game starts on main menu - player clicks Play to start
+
         console.log('=== Enemy Eyes ===');
-        const controlScheme = this.settings.getControlScheme();
-        if (controlScheme === 'wasd') {
-            console.log('WASD - Move | Shift - Sprint');
-        } else {
-            console.log('Arrow Keys - Move | Shift - Sprint');
-        }
-        console.log('SPACE - Shoot | R - Reload | 1-4 - Switch Weapons');
-        console.log('Q - Flashbang | E - Dash | C - Fire Wall | X - Ultimate');
-        console.log('B - Buy Menu | T - Toggle Controls | ESC - Close');
-        console.log('Kill enemies! Third-person view.');
+        console.log('Click PLAY to start the game!');
     }
 
     /**
@@ -428,16 +418,40 @@ export class Game {
         const dt = Math.min((now - this.lastTime) / 1000, 0.1);
         this.lastTime = now;
 
-        // Check if game is paused (buy menu open)
-        const isPaused = this.gameManager && this.gameManager.isPaused;
+        // Get current game state
+        const gameState = this.gameManager ? this.gameManager.getState() : 'menu';
 
-        // Escape key - close buy menu
+        // If on main menu, just render - no input processing
+        if (gameState === 'menu') {
+            return;
+        }
+
+        // Escape key - toggle pause or close buy menu
         if (this.keys['Escape']) {
             this.keys['Escape'] = false;
             if (this.gameManager) {
-                this.gameManager.closeBuyMenu();
+                // If buy menu is open, close it
+                if (this.gameManager.isBuyMenuOpen()) {
+                    this.gameManager.closeBuyMenu();
+                } else if (gameState === 'playing' || gameState === 'paused') {
+                    // Toggle pause
+                    this.gameManager.togglePause();
+                }
             }
         }
+
+        // If game over, no input processing
+        if (gameState === 'gameOver') {
+            return;
+        }
+
+        // If paused (pause menu), only allow ESC to resume
+        if (gameState === 'paused') {
+            return;
+        }
+
+        // Check if game is paused (buy menu open)
+        const isPaused = this.gameManager && this.gameManager.isPaused;
 
         // Open buy menu (B key) - works even when paused
         if (this.keys['KeyB']) {
@@ -447,7 +461,7 @@ export class Game {
             }
         }
 
-        // Skip gameplay input if paused
+        // Skip gameplay input if paused (buy menu)
         if (isPaused) {
             // Still update game manager for timer countdown
             this.gameManager.update(dt);

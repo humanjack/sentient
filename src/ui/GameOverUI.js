@@ -7,17 +7,22 @@ import { Button } from '@babylonjs/gui/2D/controls/button';
 import { Rectangle } from '@babylonjs/gui/2D/controls/rectangle';
 import { StackPanel } from '@babylonjs/gui/2D/controls/stackPanel';
 import { Control } from '@babylonjs/gui/2D/controls/control';
+import { SaveManager } from '../gameflow/SaveManager.js';
 
 export class GameOverUI {
     /**
      * Create game over UI.
      * @param {Scene} scene - Babylon.js scene
-     * @param {function} onRestart - Called when restart button clicked
+     * @param {Object} callbacks - Menu action callbacks
      */
-    constructor(scene, onRestart) {
+    constructor(scene, callbacks = {}) {
         this.scene = scene;
-        this.onRestart = onRestart;
+        this.onRestart = callbacks.onRestart || null;
+        this.onMainMenu = callbacks.onMainMenu || null;
         this.isVisible = false;
+
+        // Get save manager
+        this.saveManager = SaveManager.getInstance();
 
         // Create fullscreen GUI
         this.gui = AdvancedDynamicTexture.CreateFullscreenUI('GameOverUI', true, scene);
@@ -103,34 +108,93 @@ export class GameOverUI {
 
         this.panel.addControl(this.scoreText);
 
+        // New high score text (hidden by default)
+        this.newHighScoreText = new TextBlock('newHighScore');
+        this.newHighScoreText.text = 'NEW HIGH SCORE!';
+        this.newHighScoreText.color = '#ffaa00';
+        this.newHighScoreText.fontSize = 28;
+        this.newHighScoreText.fontFamily = 'Courier New, monospace';
+        this.newHighScoreText.fontWeight = 'bold';
+        this.newHighScoreText.height = '40px';
+        this.newHighScoreText.paddingTop = '10px';
+        this.newHighScoreText.isVisible = false;
+
+        this.panel.addControl(this.newHighScoreText);
+
+        // Button container for side by side layout
+        const buttonRow = new StackPanel('buttonRow');
+        buttonRow.isVertical = false;
+        buttonRow.width = '100%';
+        buttonRow.height = '80px';
+        buttonRow.paddingTop = '20px';
+        buttonRow.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+
+        this.panel.addControl(buttonRow);
+
         // Restart button
-        this.restartButton = Button.CreateSimpleButton('restartBtn', 'RESTART');
-        this.restartButton.width = '200px';
-        this.restartButton.height = '60px';
-        this.restartButton.color = 'white';
-        this.restartButton.background = '#44aa44';
-        this.restartButton.fontSize = 28;
-        this.restartButton.fontFamily = 'Courier New, monospace';
-        this.restartButton.paddingTop = '30px';
-        this.restartButton.cornerRadius = 10;
-        this.restartButton.thickness = 2;
+        this.restartButton = this.createButton('RESTART', '#44aa44', () => {
+            if (this.onRestart) this.onRestart();
+        });
+        buttonRow.addControl(this.restartButton);
+
+        // Main Menu button
+        this.mainMenuButton = this.createButton('MAIN MENU', '#4466aa', () => {
+            if (this.onMainMenu) this.onMainMenu();
+        });
+        buttonRow.addControl(this.mainMenuButton);
+    }
+
+    /**
+     * Create a styled button.
+     * @param {string} text
+     * @param {string} color
+     * @param {function} onClick
+     * @returns {Rectangle}
+     */
+    createButton(text, color, onClick) {
+        const container = new Rectangle(`btn_${text}_container`);
+        container.width = '150px';
+        container.height = '50px';
+        container.thickness = 0;
+        container.paddingLeft = '10px';
+        container.paddingRight = '10px';
+
+        const button = Button.CreateSimpleButton(`btn_${text}`, text);
+        button.width = '100%';
+        button.height = '100%';
+        button.color = 'white';
+        button.background = color;
+        button.fontSize = 18;
+        button.fontFamily = 'Courier New, monospace';
+        button.fontWeight = 'bold';
+        button.cornerRadius = 10;
+        button.thickness = 2;
+
+        container.addControl(button);
 
         // Hover effects
-        this.restartButton.onPointerEnterObservable.add(() => {
-            this.restartButton.background = '#66cc66';
+        const lighterColor = this.lightenColor(color);
+        button.onPointerEnterObservable.add(() => {
+            button.background = lighterColor;
         });
-        this.restartButton.onPointerOutObservable.add(() => {
-            this.restartButton.background = '#44aa44';
-        });
-
-        // Click handler
-        this.restartButton.onPointerUpObservable.add(() => {
-            if (this.onRestart) {
-                this.onRestart();
-            }
+        button.onPointerOutObservable.add(() => {
+            button.background = color;
         });
 
-        this.panel.addControl(this.restartButton);
+        button.onPointerUpObservable.add(onClick);
+
+        return container;
+    }
+
+    /**
+     * Lighten a hex color.
+     * @param {string} color
+     * @returns {string}
+     */
+    lightenColor(color) {
+        if (color === '#44aa44') return '#66cc66';
+        if (color === '#4466aa') return '#6688cc';
+        return color;
     }
 
     /**
@@ -143,6 +207,11 @@ export class GameOverUI {
         this.waveText.text = `Wave Reached: ${wave}`;
         this.killsText.text = `Total Kills: ${kills}`;
         this.scoreText.text = `Score: ${score}`;
+
+        // Save and check for new high score
+        const isNewHigh = this.saveManager.saveHighScore(score, wave);
+        this.saveManager.addKills(kills);
+        this.newHighScoreText.isVisible = isNewHigh;
 
         this.overlay.isVisible = true;
         this.panel.isVisible = true;

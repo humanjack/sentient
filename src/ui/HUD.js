@@ -855,6 +855,20 @@ export class HUD {
     }
 
     /**
+     * Show the HUD.
+     */
+    show() {
+        this.gui.rootContainer.isVisible = true;
+    }
+
+    /**
+     * Hide the HUD.
+     */
+    hide() {
+        this.gui.rootContainer.isVisible = false;
+    }
+
+    /**
      * Dispose of HUD resources.
      */
     dispose() {

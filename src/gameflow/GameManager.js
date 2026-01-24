@@ -4,9 +4,12 @@
  */
 import { WaveManager } from './WaveManager.js';
 import { ScoreManager } from './ScoreManager.js';
+import { SaveManager } from './SaveManager.js';
 import { BuyPhase } from './BuyPhase.js';
 import { HUD } from '../ui/HUD.js';
 import { GameOverUI } from '../ui/GameOverUI.js';
+import { MainMenuUI } from '../ui/MainMenuUI.js';
+import { PauseMenuUI } from '../ui/PauseMenuUI.js';
 import { PlayerHealth } from '../player/PlayerHealth.js';
 
 export class GameManager {
@@ -34,15 +37,29 @@ export class GameManager {
         this.getWeaponInventory = options.getWeaponInventory || null;
         this.abilitySystem = options.abilitySystem || null;
 
-        // Game state
-        this.gameState = 'idle'; // 'idle', 'playing', 'paused', 'gameOver'
+        // Game state: 'menu', 'playing', 'paused', 'buyPhase', 'gameOver'
+        this.gameState = 'menu';
         this.isPaused = false;
 
         // Stats
         this.totalKills = 0;
 
-        // Create HUD first (needed for callbacks)
+        // Initialize SaveManager
+        this.saveManager = SaveManager.getInstance();
+
+        // Create Main Menu UI
+        this.mainMenuUI = new MainMenuUI(this.scene, () => this.handlePlayClicked());
+
+        // Create Pause Menu UI
+        this.pauseMenuUI = new PauseMenuUI(this.scene, {
+            onResume: () => this.resumeGame(),
+            onRestart: () => this.restartGame(),
+            onMainMenu: () => this.returnToMainMenu(),
+        });
+
+        // Create HUD (needed for callbacks)
         this.hud = new HUD(this.scene);
+        this.hud.hide(); // Hidden until game starts
 
         // Create Score Manager
         this.scoreManager = new ScoreManager({
@@ -67,7 +84,10 @@ export class GameManager {
         this.hud.updateShield(this.playerHealth.currentShield, this.playerHealth.maxShield);
 
         // Create Game Over UI
-        this.gameOverUI = new GameOverUI(this.scene, () => this.restartGame());
+        this.gameOverUI = new GameOverUI(this.scene, {
+            onRestart: () => this.restartGame(),
+            onMainMenu: () => this.returnToMainMenu(),
+        });
 
         // Create Wave Manager
         this.waveManager = new WaveManager({
@@ -98,7 +118,15 @@ export class GameManager {
             onControlsChanged: (scheme) => this.handleControlsChanged(scheme),
         });
 
-        console.log('GameManager initialized with WaveManager, ScoreManager, BuyPhase, HUD, PlayerHealth, and GameOverUI');
+        console.log('GameManager initialized with all UI systems');
+    }
+
+    /**
+     * Handle Play button clicked from main menu.
+     */
+    handlePlayClicked() {
+        this.mainMenuUI.hide();
+        this.startGame();
     }
 
     /**
@@ -172,6 +200,49 @@ export class GameManager {
      */
     restartGame() {
         console.log('Restarting game...');
+        location.reload();
+    }
+
+    /**
+     * Toggle pause state (ESC key).
+     */
+    togglePause() {
+        if (this.gameState === 'playing') {
+            this.pauseGame();
+        } else if (this.gameState === 'paused') {
+            this.resumeGame();
+        }
+    }
+
+    /**
+     * Pause the game.
+     */
+    pauseGame() {
+        if (this.gameState !== 'playing') return;
+
+        this.gameState = 'paused';
+        this.isPaused = true;
+        this.pauseMenuUI.show();
+        console.log('Game paused');
+    }
+
+    /**
+     * Resume the game from pause.
+     */
+    resumeGame() {
+        if (this.gameState !== 'paused') return;
+
+        this.gameState = 'playing';
+        this.isPaused = false;
+        this.pauseMenuUI.hide();
+        console.log('Game resumed');
+    }
+
+    /**
+     * Return to main menu.
+     */
+    returnToMainMenu() {
+        console.log('Returning to main menu...');
         location.reload();
     }
 
@@ -395,6 +466,10 @@ export class GameManager {
     startGame() {
         this.gameState = 'playing';
         this.totalKills = 0;
+        this.isPaused = false;
+
+        // Show HUD
+        this.hud.show();
 
         // Reset score manager
         this.scoreManager.reset();
@@ -471,14 +546,18 @@ export class GameManager {
      * @param {number} deltaTime
      */
     update(deltaTime) {
-        // Don't update if game is over
-        if (this.gameState === 'gameOver') {
+        // Don't update if game is over or on menu
+        if (this.gameState === 'gameOver' || this.gameState === 'menu') {
             return;
         }
 
-        // If paused (buy menu open), only update timer displays
+        // If paused (pause menu or buy menu), only update necessary timers
+        if (this.gameState === 'paused') {
+            return;
+        }
+
         if (this.isPaused) {
-            // Still update wave manager for timer countdown
+            // Still update wave manager for timer countdown during buy phase
             if (this.waveManager && this.waveManager.getState() === 'buyPhase') {
                 this.waveManager.update(deltaTime);
                 const timeRemaining = this.waveManager.getBuyPhaseTimeRemaining();
