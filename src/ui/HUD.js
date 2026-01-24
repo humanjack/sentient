@@ -492,10 +492,30 @@ export class HUD {
      * Update weapon display.
      * @param {string} name - Weapon name
      * @param {string} ammoString - Ammo display string (e.g., "30 / 30" or "∞")
+     * @param {number} currentAmmo - Current ammo count (optional)
+     * @param {number} maxAmmo - Max ammo count (optional)
      */
-    updateWeapon(name, ammoString) {
+    updateWeapon(name, ammoString, currentAmmo = null, maxAmmo = null) {
         this.weaponNameText.text = name;
         this.weaponAmmoText.text = ammoString;
+
+        // Low ammo warning (flash red when below 25%)
+        if (currentAmmo !== null && maxAmmo !== null && maxAmmo > 0) {
+            const ammoPercent = currentAmmo / maxAmmo;
+            if (ammoPercent <= 0.25 && currentAmmo > 0) {
+                // Low ammo - pulse red
+                const pulse = 0.5 + Math.sin(Date.now() * 0.01) * 0.5;
+                this.weaponAmmoText.color = `rgba(255, ${Math.floor(pulse * 100)}, ${Math.floor(pulse * 100)}, 1)`;
+            } else if (currentAmmo <= 0) {
+                // No ammo - solid red
+                this.weaponAmmoText.color = '#ff4444';
+            } else {
+                // Normal
+                this.weaponAmmoText.color = 'white';
+            }
+        } else {
+            this.weaponAmmoText.color = 'white';
+        }
     }
 
     /**

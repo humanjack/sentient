@@ -10,6 +10,7 @@ import { HUD } from '../ui/HUD.js';
 import { GameOverUI } from '../ui/GameOverUI.js';
 import { MainMenuUI } from '../ui/MainMenuUI.js';
 import { PauseMenuUI } from '../ui/PauseMenuUI.js';
+import { TutorialHints } from '../ui/TutorialHints.js';
 import { PlayerHealth } from '../player/PlayerHealth.js';
 
 export class GameManager {
@@ -470,6 +471,11 @@ export class GameManager {
 
         // Show HUD
         this.hud.show();
+
+        // Show tutorial hints on first play
+        if (!this.tutorialHints) {
+            this.tutorialHints = new TutorialHints(this.scene);
+        }
 
         // Reset score manager
         this.scoreManager.reset();

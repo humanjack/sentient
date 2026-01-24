@@ -314,7 +314,12 @@ export class Game {
         }
         // Also update game manager HUD if available
         if (this.gameManager && this.gameManager.hud && weapon) {
-            this.gameManager.hud.updateWeapon(weapon.name, weapon.getAmmoString());
+            this.gameManager.hud.updateWeapon(
+                weapon.name,
+                weapon.getAmmoString(),
+                weapon.currentAmmo,
+                weapon.maxAmmo
+            );
         }
     }
 
