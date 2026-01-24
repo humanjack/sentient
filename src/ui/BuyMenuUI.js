@@ -8,6 +8,7 @@ import { Rectangle } from '@babylonjs/gui/2D/controls/rectangle';
 import { StackPanel } from '@babylonjs/gui/2D/controls/stackPanel';
 import { Control } from '@babylonjs/gui/2D/controls/control';
 import { Settings } from '../core/Settings.js';
+import { AudioManager } from '../audio/AudioManager.js';
 
 export class BuyMenuUI {
     /**
@@ -214,6 +215,7 @@ export class BuyMenuUI {
             if (this.canAfford(item.cost)) {
                 this.handlePurchase(item.id);
             } else {
+                this.playFailSound();
                 this.flashButton(item.id, '#ff4444'); // Red flash for can't afford
             }
         });
@@ -361,12 +363,28 @@ export class BuyMenuUI {
         const btnData = this.itemButtons[itemId];
         if (!btnData) return;
 
+        // Play purchase sound
+        const audioManager = AudioManager.getInstance();
+        if (audioManager) {
+            audioManager.playSound('purchase');
+        }
+
         // Flash green for success
         this.flashButton(itemId, '#44ff44');
 
         // Notify callback
         if (this.onPurchase) {
             this.onPurchase(itemId);
+        }
+    }
+
+    /**
+     * Play fail sound for can't afford.
+     */
+    playFailSound() {
+        const audioManager = AudioManager.getInstance();
+        if (audioManager) {
+            audioManager.playSound('purchase_fail');
         }
     }
 

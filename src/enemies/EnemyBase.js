@@ -5,6 +5,7 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { CameraTarget } from '../camera/CameraTarget.js';
 import { ScoreManager } from '../gameflow/ScoreManager.js';
+import { AudioManager } from '../audio/AudioManager.js';
 
 export class EnemyBase {
     /**
@@ -89,6 +90,12 @@ export class EnemyBase {
         this.cameraTarget.deactivate();
 
         console.log(`${this.cameraTarget.name} died!`);
+
+        // Play death sound
+        const audioManager = AudioManager.getInstance();
+        if (audioManager) {
+            audioManager.playSound('enemy_death');
+        }
 
         // Add score and credits
         const scoreManager = ScoreManager.getInstance();

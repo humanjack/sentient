@@ -5,6 +5,7 @@ import { AbilityDash } from './abilities/AbilityDash.js';
 import { AbilityFlashBang } from './abilities/AbilityFlashBang.js';
 import { AbilityFireWall } from './abilities/AbilityFireWall.js';
 import { AbilityUltimate } from './abilities/AbilityUltimate.js';
+import { AudioManager } from '../audio/AudioManager.js';
 
 export class AbilitySystem {
     /**
@@ -110,11 +111,38 @@ export class AbilitySystem {
 
         const success = ability.execute(context);
 
-        if (success && this.onAbilityUsed) {
-            this.onAbilityUsed(ability);
+        if (success) {
+            // Play ability sound
+            this.playAbilitySound(ability);
+
+            if (this.onAbilityUsed) {
+                this.onAbilityUsed(ability);
+            }
         }
 
         return success;
+    }
+
+    /**
+     * Play sound for an ability.
+     * @param {Ability} ability
+     */
+    playAbilitySound(ability) {
+        const audioManager = AudioManager.getInstance();
+        if (!audioManager) return;
+
+        // Map ability names to sound names
+        const soundMap = {
+            'Dash': 'dash',
+            'Flash Bang': 'flashbang',
+            'Fire Wall': 'firewall',
+            'Inferno': 'ultimate',
+        };
+
+        const soundName = soundMap[ability.name];
+        if (soundName) {
+            audioManager.playSound(soundName);
+        }
     }
 
     /**

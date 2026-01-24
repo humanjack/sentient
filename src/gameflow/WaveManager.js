@@ -2,6 +2,7 @@
  * WaveManager.js - Handles wave progression, timing, and state transitions.
  */
 import { ScoreManager } from './ScoreManager.js';
+import { AudioManager } from '../audio/AudioManager.js';
 
 export class WaveManager {
     /**
@@ -136,6 +137,12 @@ export class WaveManager {
         // Check if this is a boss wave
         this.isBossWave = this.isBossWaveNumber(this.currentWave);
 
+        // Play wave start sound
+        const audioManager = AudioManager.getInstance();
+        if (audioManager) {
+            audioManager.playSound('wave_start');
+        }
+
         if (this.isBossWave) {
             // Boss wave - spawn boss only (boss spawns minions)
             this.enemiesSpawned = 1;
@@ -219,6 +226,12 @@ export class WaveManager {
         this.waveCompletePauseTimer = this.waveCompletePauseDuration;
 
         console.log(`Wave ${this.currentWave} complete!`);
+
+        // Play wave complete sound
+        const audioManager = AudioManager.getInstance();
+        if (audioManager) {
+            audioManager.playSound('wave_complete');
+        }
 
         // Add wave bonus to score
         const scoreManager = ScoreManager.getInstance();

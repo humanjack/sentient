@@ -30,6 +30,9 @@ import { GameManager } from '../gameflow/GameManager.js';
 // Settings
 import { Settings } from './Settings.js';
 
+// Audio
+import { AudioManager } from '../audio/AudioManager.js';
+
 export class Game {
     constructor(engine, canvas) {
         this.engine = engine;
@@ -46,6 +49,10 @@ export class Game {
 
         // Settings
         this.settings = Settings.getInstance();
+
+        // Audio
+        this.audioManager = new AudioManager();
+        this.setupAudio();
 
         // Damage system
         this.damageSystem = new DamageSystem();
@@ -110,6 +117,21 @@ export class Game {
         console.log('Q - Flashbang | E - Dash | C - Fire Wall | X - Ultimate');
         console.log('B - Buy Menu | T - Toggle Controls | ESC - Close');
         console.log('Kill enemies! Third-person view.');
+    }
+
+    /**
+     * Setup audio system - initialize on first user interaction.
+     */
+    setupAudio() {
+        // Audio context must be started after user interaction
+        const initAudio = async () => {
+            await this.audioManager.init();
+            // Remove listeners after first interaction
+            document.removeEventListener('click', initAudio);
+            document.removeEventListener('keydown', initAudio);
+        };
+        document.addEventListener('click', initAudio, { once: true });
+        document.addEventListener('keydown', initAudio, { once: true });
     }
 
     setupInput() {
@@ -217,6 +239,13 @@ export class Game {
     onWeaponFire() {
         this.createMuzzleFlash();
         this.updateHUD();
+
+        // Play weapon sound
+        const weapon = this.getCurrentWeapon();
+        if (weapon && this.audioManager) {
+            const soundName = `shoot_${weapon.name.toLowerCase()}`;
+            this.audioManager.playSound(soundName);
+        }
     }
 
     createMuzzleFlash() {
@@ -440,7 +469,12 @@ export class Game {
         if (this.keys['KeyR']) {
             this.keys['KeyR'] = false;
             const weapon = this.getCurrentWeapon();
-            if (weapon) weapon.reload();
+            if (weapon) {
+                weapon.reload();
+                if (this.audioManager) {
+                    this.audioManager.playSound('reload');
+                }
+            }
         }
 
         // Weapon switching (number keys 1-4)

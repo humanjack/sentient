@@ -1,6 +1,8 @@
 /**
  * PlayerHealth.js - Manages player health and shield.
  */
+import { AudioManager } from '../audio/AudioManager.js';
+
 export class PlayerHealth {
     /**
      * Create player health system.
@@ -86,6 +88,12 @@ export class PlayerHealth {
             this.onDamage(amount);
         }
 
+        // Play hurt sound
+        const audioManager = AudioManager.getInstance();
+        if (audioManager) {
+            audioManager.playSound('player_hurt');
+        }
+
         console.log(`Player took ${amount} damage! HP: ${this.currentHealth}/${this.maxHealth}, Shield: ${this.currentShield}/${this.maxShield}`);
 
         // Check for death
@@ -138,6 +146,12 @@ export class PlayerHealth {
         this.currentHealth = 0;
 
         console.log('Player died!');
+
+        // Play death sound
+        const audioManager = AudioManager.getInstance();
+        if (audioManager) {
+            audioManager.playSound('player_death');
+        }
 
         if (this.onDeath) {
             this.onDeath();
