@@ -33,6 +33,9 @@ import { Settings } from './Settings.js';
 // Audio
 import { AudioManager } from '../audio/AudioManager.js';
 
+// Effects
+import { EffectsManager } from '../effects/EffectsManager.js';
+
 export class Game {
     constructor(engine, canvas) {
         this.engine = engine;
@@ -53,6 +56,9 @@ export class Game {
         // Audio
         this.audioManager = new AudioManager();
         this.setupAudio();
+
+        // Effects
+        this.effectsManager = new EffectsManager(this.scene);
 
         // Damage system
         this.damageSystem = new DamageSystem();
@@ -249,21 +255,12 @@ export class Game {
     }
 
     createMuzzleFlash() {
-        const flash = new PointLight('muzzleFlash', this.playerNode.position.add(new Vector3(0, 1, 0)), this.scene);
-        flash.diffuse = new Color3(1, 0.8, 0.3);
-        flash.intensity = 2;
-        flash.range = 5;
-        setTimeout(() => flash.dispose(), 50);
+        const position = this.playerNode.position.add(new Vector3(0, 1, 0));
+        this.effectsManager.createMuzzleFlash(position);
     }
 
     createHitEffect(point) {
-        const hit = MeshBuilder.CreateSphere('hitEffect', { diameter: 0.3 }, this.scene);
-        hit.position = point.clone();
-        const mat = new StandardMaterial('hitMat', this.scene);
-        mat.emissiveColor = new Color3(1, 0.5, 0);
-        mat.disableLighting = true;
-        hit.material = mat;
-        setTimeout(() => hit.dispose(), 100);
+        this.effectsManager.createHitSpark(point);
     }
 
     shoot() {

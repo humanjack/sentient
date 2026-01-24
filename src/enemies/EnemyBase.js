@@ -6,6 +6,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { CameraTarget } from '../camera/CameraTarget.js';
 import { ScoreManager } from '../gameflow/ScoreManager.js';
 import { AudioManager } from '../audio/AudioManager.js';
+import { EffectsManager } from '../effects/EffectsManager.js';
 
 export class EnemyBase {
     /**
@@ -95,6 +96,12 @@ export class EnemyBase {
         const audioManager = AudioManager.getInstance();
         if (audioManager) {
             audioManager.playSound('enemy_death');
+        }
+
+        // Create death explosion effect
+        const effectsManager = EffectsManager.getInstance();
+        if (effectsManager && this.mesh) {
+            effectsManager.createDeathExplosion(this.mesh.position.clone());
         }
 
         // Add score and credits
