@@ -62,11 +62,23 @@ export class WeaponRifle extends Weapon {
         });
 
         if (hit && hit.hit) {
-            console.log(`Rifle hit: ${hit.pickedMesh.name} at distance ${hit.distance.toFixed(2)}`);
+            // Headshot detection: hit in upper 25% of mesh
+            let isHeadshot = false;
+            let finalDamage = this.damage;
+            try {
+                const meshBounds = hit.pickedMesh.getBoundingInfo();
+                const meshTop = meshBounds.boundingBox.maximumWorld.y;
+                const meshBottom = meshBounds.boundingBox.minimumWorld.y;
+                const meshHeight = meshTop - meshBottom;
+                const hitHeight = hit.pickedPoint.y - meshBottom;
+                isHeadshot = hitHeight > meshHeight * 0.75;
+                if (isHeadshot) finalDamage = Math.floor(this.damage * 1.5);
+            } catch (e) { /* ignore bounds errors */ }
 
-            // Call hit callback with damage
+            console.log(`Rifle ${isHeadshot ? 'HEADSHOT' : 'hit'}: ${hit.pickedMesh.name} for ${finalDamage}`);
+
             if (onHit) {
-                onHit(hit, this.damage);
+                onHit(hit, finalDamage, isHeadshot);
             }
 
             return {
@@ -74,7 +86,8 @@ export class WeaponRifle extends Weapon {
                 mesh: hit.pickedMesh,
                 point: hit.pickedPoint,
                 distance: hit.distance,
-                damage: this.damage,
+                damage: finalDamage,
+                isHeadshot,
             };
         }
 

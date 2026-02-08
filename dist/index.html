@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enemy Eyes - Wave Survival Shooter</title>
+  <script type="module" crossorigin src="/assets/index-FxcIcpQ0.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BVJhQQzU.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Crosshair -->
+    <div id="crosshair">
+        <div class="crosshair-h"></div>
+        <div class="crosshair-v"></div>
+        <div class="crosshair-dot"></div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div id="ammo">30/30</div>
+        <div id="health">HP: 100</div>
+    </div>
+
+    <!-- Debug (can remove later) -->
+    <div id="debug" style="position:fixed;top:10px;left:10px;color:lime;font-family:monospace;font-size:14px;background:rgba(0,0,0,0.7);padding:10px;z-index:9999;pointer-events:none;"></div>
+
+    <!-- Simple keyboard test that runs immediately -->
+    <script>
+        const debug = document.getElementById('debug');
+        debug.innerHTML = 'Press any key...<br>';
+
+        document.addEventListener('keydown', function(e) {
+            debug.innerHTML = 'KEY: ' + e.key + '<br>Code: ' + e.code + '<br>Time: ' + Date.now();
+        });
+    </script>
+
+</body>
+</html>

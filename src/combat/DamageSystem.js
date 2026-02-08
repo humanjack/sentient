@@ -65,6 +65,36 @@ export class DamageSystem {
     }
 
     /**
+     * Process AOE (area of effect) damage at a position.
+     * @param {Vector3} center - Explosion center
+     * @param {number} damage - Max damage at center
+     * @param {number} radius - Blast radius
+     * @returns {number} Number of enemies hit
+     */
+    processAOE(center, damage, radius) {
+        let hitCount = 0;
+
+        for (const enemy of this.enemyMeshMap.values()) {
+            if (!enemy.isAlive || !enemy.mesh) continue;
+
+            const dist = Math.sqrt(
+                Math.pow(enemy.mesh.position.x - center.x, 2) +
+                Math.pow(enemy.mesh.position.z - center.z, 2)
+            );
+
+            if (dist <= radius) {
+                // Damage falls off with distance
+                const falloff = 1 - (dist / radius);
+                const actualDamage = Math.floor(damage * Math.max(0.3, falloff));
+                enemy.takeDamage(actualDamage);
+                hitCount++;
+            }
+        }
+
+        return hitCount;
+    }
+
+    /**
      * Get enemy from mesh.
      * @param {Mesh} mesh
      * @returns {EnemyBase|null}

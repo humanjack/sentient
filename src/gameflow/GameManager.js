@@ -504,6 +504,16 @@ export class GameManager {
         // Show kill reward popup
         this.hud.showPointPopup(100, '#ffff66');
 
+        // Add kill feed entry
+        const weaponName = this.getWeapon ? this.getWeapon().name : 'Unknown';
+        const enemyType = enemy.enemyType || 'Grunt';
+        this.hud.addKillFeedEntry(enemyType, weaponName, false);
+
+        // Update round counter
+        const wave = this.waveManager ? this.waveManager.getCurrentWave() : 1;
+        const remaining = this.spawner ? this.spawner.getAliveCount() - 1 : 0;
+        this.hud.updateRoundCounter(wave, this.totalKills, Math.max(0, remaining));
+
         // Add ultimate charge
         if (this.abilitySystem) {
             this.abilitySystem.addKillCharge();
