@@ -55,6 +55,18 @@ export class BuyPhase {
                 effect: () => this.purchaseWeapon('smg'),
                 isWeapon: true,
             },
+            sniper: {
+                name: 'Sniper Rifle',
+                cost: 1500,
+                effect: () => this.purchaseWeapon('sniper'),
+                isWeapon: true,
+            },
+            rocket: {
+                name: 'Rocket Launcher',
+                cost: 2000,
+                effect: () => this.purchaseWeapon('rocket'),
+                isWeapon: true,
+            },
         };
 
         // Create UI

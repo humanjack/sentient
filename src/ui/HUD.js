@@ -6,6 +6,7 @@ import { TextBlock } from '@babylonjs/gui/2D/controls/textBlock';
 import { Rectangle } from '@babylonjs/gui/2D/controls/rectangle';
 import { StackPanel } from '@babylonjs/gui/2D/controls/stackPanel';
 import { Control } from '@babylonjs/gui/2D/controls/control';
+import { Ellipse } from '@babylonjs/gui/2D/controls/ellipse';
 
 export class HUD {
     /**
@@ -31,9 +32,16 @@ export class HUD {
         this.createControlsIndicator();
         this.createAbilityDisplay();
         this.createBossHealthBar();
+        this.createMinimap();
+        this.createKillFeed();
+        this.createRoundCounter();
 
         // Track active popups for cleanup
         this.activePopups = [];
+
+        // Kill feed entries
+        this.killFeedEntries = [];
+        this.killFeedMaxEntries = 5;
 
         console.log('HUD initialized');
     }
@@ -872,6 +880,174 @@ export class HUD {
                 }
             }
         }, 16);
+    }
+
+    /**
+     * Create minimap radar (bottom-left, above health bars).
+     */
+    createMinimap() {
+        const mapSize = 150;
+        const mapSizePx = `${mapSize}px`;
+
+        // Background circle
+        this.minimapContainer = new Ellipse('minimapBg');
+        this.minimapContainer.width = mapSizePx;
+        this.minimapContainer.height = mapSizePx;
+        this.minimapContainer.background = 'rgba(0, 10, 20, 0.75)';
+        this.minimapContainer.thickness = 2;
+        this.minimapContainer.color = '#44aaff';
+        this.minimapContainer.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+        this.minimapContainer.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+        this.minimapContainer.left = '20px';
+        this.minimapContainer.top = '-170px';
+
+        this.gui.addControl(this.minimapContainer);
+
+        // Player dot (always centered)
+        this.minimapPlayerDot = new Ellipse('minimapPlayer');
+        this.minimapPlayerDot.width = '8px';
+        this.minimapPlayerDot.height = '8px';
+        this.minimapPlayerDot.background = '#44aaff';
+        this.minimapPlayerDot.thickness = 0;
+
+        this.minimapContainer.addControl(this.minimapPlayerDot);
+
+        // Store enemy dots for reuse
+        this.minimapEnemyDots = [];
+        this.minimapSize = mapSize;
+        this.minimapScale = mapSize / 60; // 60 units across maps to 150px
+    }
+
+    /**
+     * Update minimap with current positions.
+     * @param {Vector3} playerPos - Player world position
+     * @param {Array} enemies - Array of alive enemies
+     */
+    updateMinimap(playerPos, enemies) {
+        if (!this.minimapContainer) return;
+
+        // Remove old enemy dots
+        for (const dot of this.minimapEnemyDots) {
+            this.minimapContainer.removeControl(dot);
+        }
+        this.minimapEnemyDots = [];
+
+        // Add dots for each alive enemy
+        for (const enemy of enemies) {
+            if (!enemy.isAlive || !enemy.mesh) continue;
+
+            const relX = (enemy.mesh.position.x - playerPos.x) * this.minimapScale;
+            const relZ = (enemy.mesh.position.z - playerPos.z) * this.minimapScale;
+
+            // Skip if outside minimap radius
+            const dist = Math.sqrt(relX * relX + relZ * relZ);
+            if (dist > this.minimapSize / 2 - 6) continue;
+
+            const dot = new Ellipse(`mmEnemy_${Date.now()}_${Math.random()}`);
+            dot.width = '6px';
+            dot.height = '6px';
+            dot.thickness = 0;
+
+            // Color by enemy type
+            const type = enemy.enemyType || 'grunt';
+            switch (type) {
+                case 'soldier': dot.background = '#ffaa44'; break;
+                case 'sniper': dot.background = '#ff44ff'; break;
+                case 'heavy': dot.background = '#ff4444'; break;
+                case 'boss': dot.background = '#ff00ff'; break;
+                default: dot.background = '#ff6666'; break;
+            }
+
+            // Position relative to center (note: Z is "up" on minimap)
+            dot.left = `${relX}px`;
+            dot.top = `${-relZ}px`;
+
+            this.minimapContainer.addControl(dot);
+            this.minimapEnemyDots.push(dot);
+        }
+    }
+
+    /**
+     * Create kill feed display (right side).
+     */
+    createKillFeed() {
+        this.killFeedContainer = new StackPanel('killFeedContainer');
+        this.killFeedContainer.width = '250px';
+        this.killFeedContainer.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        this.killFeedContainer.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+        this.killFeedContainer.left = '-20px';
+        this.killFeedContainer.top = '-50px';
+
+        this.gui.addControl(this.killFeedContainer);
+    }
+
+    /**
+     * Add a kill to the kill feed.
+     * @param {string} enemyType - Type of enemy killed
+     * @param {string} weaponName - Weapon used
+     * @param {boolean} isHeadshot - Whether it was a headshot
+     */
+    addKillFeedEntry(enemyType, weaponName, isHeadshot = false) {
+        const entry = new TextBlock(`kf_${Date.now()}`);
+        const hsTag = isHeadshot ? ' [HS]' : '';
+        entry.text = `${weaponName} > ${enemyType}${hsTag}`;
+        entry.color = isHeadshot ? '#ff4444' : '#dddddd';
+        entry.fontSize = 14;
+        entry.fontFamily = 'Courier New, monospace';
+        entry.height = '22px';
+        entry.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        entry.shadowColor = 'black';
+        entry.shadowBlur = 2;
+        entry.shadowOffsetX = 1;
+        entry.shadowOffsetY = 1;
+
+        this.killFeedContainer.addControl(entry);
+        this.killFeedEntries.push(entry);
+
+        // Remove oldest if over max
+        while (this.killFeedEntries.length > this.killFeedMaxEntries) {
+            const old = this.killFeedEntries.shift();
+            this.killFeedContainer.removeControl(old);
+        }
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            const idx = this.killFeedEntries.indexOf(entry);
+            if (idx !== -1) {
+                this.killFeedEntries.splice(idx, 1);
+                this.killFeedContainer.removeControl(entry);
+            }
+        }, 5000);
+    }
+
+    /**
+     * Create round counter / match progression display (top center, below wave).
+     */
+    createRoundCounter() {
+        this.roundCounterText = new TextBlock('roundCounterText');
+        this.roundCounterText.text = '';
+        this.roundCounterText.color = '#aaaacc';
+        this.roundCounterText.fontSize = 16;
+        this.roundCounterText.fontFamily = 'Courier New, monospace';
+        this.roundCounterText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        this.roundCounterText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+        this.roundCounterText.top = '55px';
+        this.roundCounterText.shadowColor = 'black';
+        this.roundCounterText.shadowBlur = 2;
+
+        this.gui.addControl(this.roundCounterText);
+    }
+
+    /**
+     * Update round counter display.
+     * @param {number} wave - Current wave
+     * @param {number} kills - Total kills
+     * @param {number} enemiesRemaining - Enemies still alive
+     */
+    updateRoundCounter(wave, kills, enemiesRemaining) {
+        const nextBoss = 10 - (wave % 10);
+        const bossInfo = nextBoss === 10 ? 'BOSS WAVE' : `Boss in ${nextBoss}`;
+        this.roundCounterText.text = `Kills: ${kills} | ${bossInfo} | Remaining: ${enemiesRemaining}`;
     }
 
     /**

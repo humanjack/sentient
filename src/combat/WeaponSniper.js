@@ -1,27 +1,28 @@
 /**
- * WeaponRifle.js - Standard rifle weapon.
- * From GAME_SPEC: 30 ammo, 35 damage
+ * WeaponSniper.js - Sniper Rifle weapon.
+ * From GAME_SPEC: 5 ammo, 100 damage, very slow fire rate, $1500
  */
 import { Ray } from '@babylonjs/core/Culling/ray';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Weapon } from './Weapon.js';
 
-export class WeaponRifle extends Weapon {
+export class WeaponSniper extends Weapon {
     constructor(options = {}) {
         super({
-            name: 'Rifle',
-            damage: 35,
-            fireRate: 150, // Fast fire rate
-            maxAmmo: 30,
-            reloadTime: 1500,
+            name: 'Sniper',
+            damage: 100,
+            fireRate: 1200, // Very slow fire rate
+            maxAmmo: 5,
+            reloadTime: 2500,
             ...options,
         });
 
-        this.range = 100; // Max raycast distance
+        this.range = 200; // Long range
+        this.headshotMultiplier = 2.5; // Massive headshot bonus
     }
 
     /**
-     * Fire the rifle using raycasting.
+     * Fire the sniper rifle using raycasting.
      * @param {Vector3} origin - Player position (gun muzzle)
      * @param {Vector3} direction - Aim direction (normalized)
      * @param {Scene} scene - Babylon.js scene
@@ -48,7 +49,6 @@ export class WeaponRifle extends Weapon {
 
         // Raycast to find hit
         const hit = scene.pickWithRay(ray, (mesh) => {
-            // Don't hit ground, walls, player, or UI elements
             const name = mesh.name.toLowerCase();
             if (name === 'ground') return false;
             if (name.includes('wall')) return false;
@@ -62,20 +62,17 @@ export class WeaponRifle extends Weapon {
         });
 
         if (hit && hit.hit) {
-            // Headshot detection: hit in upper 25% of mesh
-            let isHeadshot = false;
-            let finalDamage = this.damage;
-            try {
-                const meshBounds = hit.pickedMesh.getBoundingInfo();
-                const meshTop = meshBounds.boundingBox.maximumWorld.y;
-                const meshBottom = meshBounds.boundingBox.minimumWorld.y;
-                const meshHeight = meshTop - meshBottom;
-                const hitHeight = hit.pickedPoint.y - meshBottom;
-                isHeadshot = hitHeight > meshHeight * 0.75;
-                if (isHeadshot) finalDamage = Math.floor(this.damage * 1.5);
-            } catch (e) { /* ignore bounds errors */ }
+            // Check for headshot (hit point is in upper portion of mesh)
+            const meshBounds = hit.pickedMesh.getBoundingInfo();
+            const meshTop = meshBounds.boundingBox.maximumWorld.y;
+            const meshBottom = meshBounds.boundingBox.minimumWorld.y;
+            const meshHeight = meshTop - meshBottom;
+            const hitHeight = hit.pickedPoint.y - meshBottom;
+            const isHeadshot = hitHeight > meshHeight * 0.75;
 
-            console.log(`Rifle ${isHeadshot ? 'HEADSHOT' : 'hit'}: ${hit.pickedMesh.name} for ${finalDamage}`);
+            const finalDamage = isHeadshot ? this.damage * this.headshotMultiplier : this.damage;
+
+            console.log(`Sniper ${isHeadshot ? 'HEADSHOT' : 'hit'}: ${hit.pickedMesh.name} for ${finalDamage} damage`);
 
             if (onHit) {
                 onHit(hit, finalDamage, isHeadshot);
@@ -91,7 +88,6 @@ export class WeaponRifle extends Weapon {
             };
         }
 
-        console.log('Rifle shot missed');
         return { hit: false };
     }
 }

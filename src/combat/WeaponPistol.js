@@ -67,10 +67,23 @@ export class WeaponPistol extends Weapon {
         });
 
         if (hit && hit.hit) {
-            console.log(`Pistol hit: ${hit.pickedMesh.name}`);
+            // Headshot detection
+            let isHeadshot = false;
+            let finalDamage = this.damage;
+            try {
+                const meshBounds = hit.pickedMesh.getBoundingInfo();
+                const meshTop = meshBounds.boundingBox.maximumWorld.y;
+                const meshBottom = meshBounds.boundingBox.minimumWorld.y;
+                const meshHeight = meshTop - meshBottom;
+                const hitHeight = hit.pickedPoint.y - meshBottom;
+                isHeadshot = hitHeight > meshHeight * 0.75;
+                if (isHeadshot) finalDamage = Math.floor(this.damage * 1.5);
+            } catch (e) { /* ignore */ }
+
+            console.log(`Pistol ${isHeadshot ? 'HEADSHOT' : 'hit'}: ${hit.pickedMesh.name}`);
 
             if (onHit) {
-                onHit(hit, this.damage);
+                onHit(hit, finalDamage, isHeadshot);
             }
 
             return {
@@ -78,7 +91,8 @@ export class WeaponPistol extends Weapon {
                 mesh: hit.pickedMesh,
                 point: hit.pickedPoint,
                 distance: hit.distance,
-                damage: this.damage,
+                damage: finalDamage,
+                isHeadshot,
             };
         }
 

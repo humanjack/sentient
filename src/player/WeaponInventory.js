@@ -5,6 +5,8 @@ import { WeaponPistol } from '../combat/WeaponPistol.js';
 import { WeaponRifle } from '../combat/WeaponRifle.js';
 import { WeaponShotgun } from '../combat/WeaponShotgun.js';
 import { WeaponSMG } from '../combat/WeaponSMG.js';
+import { WeaponSniper } from '../combat/WeaponSniper.js';
+import { WeaponRocketLauncher } from '../combat/WeaponRocketLauncher.js';
 
 export class WeaponInventory {
     /**
@@ -80,6 +82,26 @@ export class WeaponInventory {
             onEmpty: () => this.handleEmpty(),
         });
         this.addWeapon(4, smg);
+        // Not owned by default
+
+        // Slot 5: Sniper Rifle (must be purchased - $1500)
+        const sniper = new WeaponSniper({
+            onFire: () => this.handleFire(),
+            onReload: () => this.handleReload(),
+            onReloadComplete: () => this.handleReloadComplete(),
+            onEmpty: () => this.handleEmpty(),
+        });
+        this.addWeapon(5, sniper);
+        // Not owned by default
+
+        // Slot 6: Rocket Launcher (must be purchased - $2000)
+        const rocketLauncher = new WeaponRocketLauncher({
+            onFire: () => this.handleFire(),
+            onReload: () => this.handleReload(),
+            onReloadComplete: () => this.handleReloadComplete(),
+            onEmpty: () => this.handleEmpty(),
+        });
+        this.addWeapon(6, rocketLauncher);
         // Not owned by default
 
         // Start with rifle selected

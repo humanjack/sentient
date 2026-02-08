@@ -31,6 +31,8 @@ export class BuyMenuUI {
             { id: 'shield', name: 'Shield Recharge', cost: 300, description: '+50 Shield' },
             { id: 'shotgun', name: 'Shotgun', cost: 800, description: '6 pellets, high damage', isWeapon: true },
             { id: 'smg', name: 'SMG', cost: 1200, description: 'Fast fire rate', isWeapon: true },
+            { id: 'sniper', name: 'Sniper Rifle', cost: 1500, description: '100 dmg, headshot x2.5', isWeapon: true },
+            { id: 'rocket', name: 'Rocket Launcher', cost: 2000, description: '150 AOE dmg, 3 rockets', isWeapon: true },
         ];
 
         // Track owned weapons for button state
@@ -72,7 +74,7 @@ export class BuyMenuUI {
         // Main container
         this.panel = new Rectangle('buyPanel');
         this.panel.width = '400px';
-        this.panel.height = '720px';
+        this.panel.height = '880px';
         this.panel.background = 'rgba(20, 30, 40, 0.95)';
         this.panel.thickness = 3;
         this.panel.color = '#44aaff';

@@ -288,11 +288,34 @@ export class Game {
 
         const direction = aimPoint.subtract(playerPos).normalize();
 
-        weapon.fire(playerPos, direction, this.scene, (hit, damage) => {
+        weapon.fire(playerPos, direction, this.scene, (hit, damage, isHeadshot, aoeData) => {
+            // Handle AOE (rocket launcher)
+            if (aoeData && aoeData.isAOE) {
+                const hitCount = this.damageSystem.processAOE(aoeData.center, damage, aoeData.blastRadius);
+                if (hitCount > 0) {
+                    this.showHitMarker();
+                    this.triggerScreenShake(0.5);
+                }
+                // Create explosion effect
+                this.effectsManager.createExplosion(aoeData.center);
+                return;
+            }
+
             const enemyHit = this.damageSystem.processHit(hit, damage);
             if (enemyHit) {
                 this.createHitEffect(hit.pickedPoint);
                 this.showHitMarker();
+
+                if (isHeadshot) {
+                    this.showHeadshotMarker();
+                    this.triggerScreenShake(0.15);
+                    if (this.gameManager && this.gameManager.hud) {
+                        this.gameManager.hud.showMessage('HEADSHOT!', 800);
+                    }
+                    if (this.audioManager) {
+                        this.audioManager.playSound('headshot');
+                    }
+                }
             }
         });
     }
@@ -301,10 +324,49 @@ export class Game {
         const crosshair = document.getElementById('crosshair');
         if (crosshair) {
             crosshair.style.transform = 'translate(-50%, -50%) scale(1.3)';
+            crosshair.style.borderColor = 'white';
             setTimeout(() => {
                 crosshair.style.transform = 'translate(-50%, -50%) scale(1)';
+                crosshair.style.borderColor = '';
             }, 100);
         }
+    }
+
+    showHeadshotMarker() {
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) {
+            crosshair.style.transform = 'translate(-50%, -50%) scale(1.6)';
+            crosshair.style.borderColor = '#ff4444';
+            setTimeout(() => {
+                crosshair.style.transform = 'translate(-50%, -50%) scale(1)';
+                crosshair.style.borderColor = '';
+            }, 200);
+        }
+    }
+
+    /**
+     * Trigger screen shake effect.
+     * @param {number} intensity - Shake intensity (0-1)
+     */
+    triggerScreenShake(intensity = 0.3) {
+        const camera = this.playerCamera.getCamera();
+        if (!camera) return;
+
+        const originalPos = camera.position.clone();
+        const shakeCount = 6;
+        let step = 0;
+
+        const shakeInterval = setInterval(() => {
+            step++;
+            if (step >= shakeCount) {
+                clearInterval(shakeInterval);
+                return;
+            }
+            const offsetX = (Math.random() - 0.5) * intensity * 2;
+            const offsetY = (Math.random() - 0.5) * intensity * 2;
+            camera.position.x += offsetX;
+            camera.position.y += offsetY;
+        }, 30);
     }
 
     updateHUD() {
@@ -514,6 +576,16 @@ export class Game {
             this.weaponInventory.switchWeapon(4);
             this.updateHUD();
         }
+        if (this.keys['Digit5']) {
+            this.keys['Digit5'] = false;
+            this.weaponInventory.switchWeapon(5);
+            this.updateHUD();
+        }
+        if (this.keys['Digit6']) {
+            this.keys['Digit6'] = false;
+            this.weaponInventory.switchWeapon(6);
+            this.updateHUD();
+        }
 
         // Toggle control scheme (T key)
         if (this.keys['KeyT']) {
@@ -562,6 +634,12 @@ export class Game {
             );
         }
 
+        // Update minimap
+        if (this.gameManager && this.gameManager.hud) {
+            const enemies = this.getEnemies();
+            this.gameManager.hud.updateMinimap(this.getPlayerPosition(), enemies);
+        }
+
         // Update camera
         this.playerCamera.update(dt);
     }
@@ -595,7 +673,11 @@ export class Game {
         this.lastMoveDirection.x = mx;
         this.lastMoveDirection.z = mz;
 
-        const speed = this.keys['ShiftLeft'] ? this.sprintSpeed : this.moveSpeed;
+        // Use agent stats if available
+        const agentStats = this.gameManager?.agentStats;
+        const baseSpeed = agentStats ? agentStats.moveSpeed : this.moveSpeed;
+        const sprintSpd = agentStats ? agentStats.sprintSpeed : this.sprintSpeed;
+        const speed = this.keys['ShiftLeft'] ? sprintSpd : baseSpeed;
         const dx = mx * speed * dt;
         const dz = mz * speed * dt;
 
