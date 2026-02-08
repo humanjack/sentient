@@ -8,6 +8,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { EnemyBase } from './EnemyBase.js';
 import { GameManager } from '../gameflow/GameManager.js';
+import { AssetLoader } from '../core/AssetLoader.js';
 
 export class EnemyGrunt extends EnemyBase {
     /**
@@ -43,34 +44,41 @@ export class EnemyGrunt extends EnemyBase {
 
     /**
      * Create the grunt's visual representation.
-     * Red box placeholder (will be replaced with model later).
+     * Tries loaded 3D model first, falls back to red box.
      */
     createMesh() {
-        // Create body (red box, 1x2x1)
+        const assetLoader = AssetLoader.getInstance();
+        const model = assetLoader.has('enemy_grunt') ? assetLoader.cloneMesh('enemy_grunt', `grunt_${Date.now()}`) : null;
+
+        if (model) {
+            model.position = this.position.clone();
+            model.position.y = 0;
+            this.setMesh(model);
+            return;
+        }
+
+        // Geometric fallback - red box
         const body = MeshBuilder.CreateBox(
             `grunt_${Date.now()}`,
             { width: 1, height: 2, depth: 1 },
             this.scene
         );
 
-        // Position at spawn point, raised to sit on ground
         body.position = this.position.clone();
-        body.position.y = 1; // Half height
+        body.position.y = 1;
 
-        // Red material - aggressive look
         const mat = new StandardMaterial('gruntMat', this.scene);
         mat.diffuseColor = new Color3(0.8, 0.2, 0.2);
         mat.emissiveColor = new Color3(0.2, 0.05, 0.05);
         body.material = mat;
 
-        // Add "eye" indicator showing where camera looks from
         const eye = MeshBuilder.CreateSphere(
             'gruntEye',
             { diameter: 0.3 },
             this.scene
         );
         eye.parent = body;
-        eye.position = new Vector3(0, 0.5, 0.5); // Front of face
+        eye.position = new Vector3(0, 0.5, 0.5);
 
         const eyeMat = new StandardMaterial('eyeMat', this.scene);
         eyeMat.diffuseColor = new Color3(1, 1, 0);
