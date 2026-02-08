@@ -673,7 +673,11 @@ export class Game {
         this.lastMoveDirection.x = mx;
         this.lastMoveDirection.z = mz;
 
-        const speed = this.keys['ShiftLeft'] ? this.sprintSpeed : this.moveSpeed;
+        // Use agent stats if available
+        const agentStats = this.gameManager?.agentStats;
+        const baseSpeed = agentStats ? agentStats.moveSpeed : this.moveSpeed;
+        const sprintSpd = agentStats ? agentStats.sprintSpeed : this.sprintSpeed;
+        const speed = this.keys['ShiftLeft'] ? sprintSpd : baseSpeed;
         const dx = mx * speed * dt;
         const dz = mz * speed * dt;
 

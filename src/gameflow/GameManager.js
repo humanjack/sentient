@@ -12,6 +12,7 @@ import { MainMenuUI } from '../ui/MainMenuUI.js';
 import { PauseMenuUI } from '../ui/PauseMenuUI.js';
 import { TutorialHints } from '../ui/TutorialHints.js';
 import { PlayerHealth } from '../player/PlayerHealth.js';
+import { AgentSelectUI } from '../ui/AgentSelectUI.js';
 
 export class GameManager {
     // Singleton instance
@@ -124,10 +125,44 @@ export class GameManager {
 
     /**
      * Handle Play button clicked from main menu.
+     * Shows agent select screen instead of starting immediately.
      */
     handlePlayClicked() {
         this.mainMenuUI.hide();
-        this.startGame();
+
+        // Show agent selection screen
+        if (!this.agentSelectUI) {
+            this.agentSelectUI = new AgentSelectUI(this.scene, (agent) => {
+                this.selectedAgent = agent;
+                this.agentSelectUI.hide();
+                this.applyAgentStats(agent);
+                this.startGame();
+            });
+        }
+        this.agentSelectUI.show();
+    }
+
+    /**
+     * Apply selected agent's stats to the player.
+     * @param {Object} agent - Agent definition
+     */
+    applyAgentStats(agent) {
+        if (!agent) return;
+
+        // Apply health/shield
+        if (this.playerHealth) {
+            this.playerHealth.maxHealth = agent.stats.health;
+            this.playerHealth.currentHealth = agent.stats.health;
+            this.playerHealth.maxShield = agent.stats.shield;
+            this.playerHealth.currentShield = agent.stats.shield;
+            this.hud.updateHealth(agent.stats.health, agent.stats.health);
+            this.hud.updateShield(agent.stats.shield, agent.stats.shield);
+        }
+
+        // Store for Game.js to read speed values
+        this.agentStats = agent.stats;
+
+        console.log(`Selected agent: ${agent.name}`);
     }
 
     /**
