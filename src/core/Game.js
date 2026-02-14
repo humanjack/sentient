@@ -10,6 +10,7 @@ import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { AssetLoader } from './AssetLoader.js';
 
 // Camera system
 import { PlayerCamera } from '../camera/PlayerCamera.js';
@@ -396,21 +397,33 @@ export class Game {
         this.playerNode = new TransformNode('player', this.scene);
         this.playerNode.position = new Vector3(-5, 0, -5);
 
-        const body = MeshBuilder.CreateCylinder('playerBody', { height: 2, diameter: 1 }, this.scene);
-        body.parent = this.playerNode;
-        body.position.y = 1;
+        // Try to load 3D model, fall back to geometric shape
+        const assetLoader = AssetLoader.getInstance();
+        const modelMesh = assetLoader.has('player') ? assetLoader.cloneMesh('player', 'playerModel') : null;
 
-        const mat = new StandardMaterial('playerMat', this.scene);
-        mat.diffuseColor = new Color3(0.2, 0.6, 1.0);
-        mat.emissiveColor = new Color3(0.15, 0.25, 0.4);
-        body.material = mat;
+        if (modelMesh) {
+            modelMesh.parent = this.playerNode;
+            modelMesh.position.y = 1;
+            console.log('Player: using loaded 3D model');
+        } else {
+            // Geometric fallback
+            const body = MeshBuilder.CreateCylinder('playerBody', { height: 2, diameter: 1 }, this.scene);
+            body.parent = this.playerNode;
+            body.position.y = 1;
 
-        const indicator = MeshBuilder.CreateBox('indicator', { width: 0.3, height: 0.3, depth: 0.6 }, this.scene);
-        indicator.parent = this.playerNode;
-        indicator.position = new Vector3(0, 1, 0.7);
-        const indMat = new StandardMaterial('indMat', this.scene);
-        indMat.diffuseColor = new Color3(1, 0.8, 0.2);
-        indicator.material = indMat;
+            const mat = new StandardMaterial('playerMat', this.scene);
+            mat.diffuseColor = new Color3(0.2, 0.6, 1.0);
+            mat.emissiveColor = new Color3(0.15, 0.25, 0.4);
+            body.material = mat;
+
+            const indicator = MeshBuilder.CreateBox('indicator', { width: 0.3, height: 0.3, depth: 0.6 }, this.scene);
+            indicator.parent = this.playerNode;
+            indicator.position = new Vector3(0, 1, 0.7);
+            const indMat = new StandardMaterial('indMat', this.scene);
+            indMat.diffuseColor = new Color3(1, 0.8, 0.2);
+            indicator.material = indMat;
+            console.log('Player: using geometric fallback');
+        }
 
         this.playerHealth = 100;
     }
@@ -447,26 +460,40 @@ export class Game {
             wall.material = wallMat;
         });
 
-        const pillar = MeshBuilder.CreateBox('pillar', { width: 2, height: 5, depth: 2 }, this.scene);
-        pillar.position = new Vector3(0, 2.5, 0);
-        const pillarMat = new StandardMaterial('pillarMat', this.scene);
-        pillarMat.diffuseColor = new Color3(0.35, 0.35, 0.4);
-        pillar.material = pillarMat;
+        // Pillar - try loaded model
+        const assetLoader = AssetLoader.getInstance();
+        const pillarModel = assetLoader.has('env_pillar') ? assetLoader.cloneMesh('env_pillar', 'pillar') : null;
+        if (pillarModel) {
+            pillarModel.position = new Vector3(0, 0, 0);
+            console.log('Arena: using loaded pillar model');
+        } else {
+            const pillar = MeshBuilder.CreateBox('pillar', { width: 2, height: 5, depth: 2 }, this.scene);
+            pillar.position = new Vector3(0, 2.5, 0);
+            const pillarMat = new StandardMaterial('pillarMat', this.scene);
+            pillarMat.diffuseColor = new Color3(0.35, 0.35, 0.4);
+            pillar.material = pillarMat;
+        }
+
+        // Crates - try loaded models, fall back to boxes
+        const crateConfigs = [
+            { name: 'crate1', pos: new Vector3(-10, 1.5, 8), size: { width: 3, height: 3, depth: 3 } },
+            { name: 'crate2', pos: new Vector3(12, 1, -5), size: { width: 4, height: 2, depth: 2 } },
+            { name: 'crate3', pos: new Vector3(-8, 1, -12), size: { width: 2, height: 2, depth: 4 } },
+        ];
 
         const crateMat = new StandardMaterial('crateMat', this.scene);
         crateMat.diffuseColor = new Color3(0.5, 0.4, 0.3);
 
-        const crate1 = MeshBuilder.CreateBox('crate1', { width: 3, height: 3, depth: 3 }, this.scene);
-        crate1.position = new Vector3(-10, 1.5, 8);
-        crate1.material = crateMat;
-
-        const crate2 = MeshBuilder.CreateBox('crate2', { width: 4, height: 2, depth: 2 }, this.scene);
-        crate2.position = new Vector3(12, 1, -5);
-        crate2.material = crateMat;
-
-        const crate3 = MeshBuilder.CreateBox('crate3', { width: 2, height: 2, depth: 4 }, this.scene);
-        crate3.position = new Vector3(-8, 1, -12);
-        crate3.material = crateMat;
+        for (const cfg of crateConfigs) {
+            const crateModel = assetLoader.has('env_crate') ? assetLoader.cloneMesh('env_crate', cfg.name) : null;
+            if (crateModel) {
+                crateModel.position = cfg.pos;
+            } else {
+                const crate = MeshBuilder.CreateBox(cfg.name, cfg.size, this.scene);
+                crate.position = cfg.pos;
+                crate.material = crateMat;
+            }
+        }
 
         const spawnMat = new StandardMaterial('spawnMat', this.scene);
         spawnMat.diffuseColor = new Color3(0.8, 0.2, 0.2);

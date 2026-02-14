@@ -9,6 +9,7 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { EnemyBase } from './EnemyBase.js';
 import { GameManager } from '../gameflow/GameManager.js';
 import { CameraTarget } from '../camera/CameraTarget.js';
+import { AssetLoader } from '../core/AssetLoader.js';
 
 export class EnemyHeavy extends EnemyBase {
     /**
@@ -46,32 +47,29 @@ export class EnemyHeavy extends EnemyBase {
      * Large dark red box placeholder.
      */
     createMesh() {
-        // Create body (large dark red box, 2x3x2)
-        const body = MeshBuilder.CreateBox(
-            `heavy_${Date.now()}`,
-            { width: 2, height: 3, depth: 2 },
-            this.scene
-        );
+        const assetLoader = AssetLoader.getInstance();
+        const model = assetLoader.has('enemy_heavy') ? assetLoader.cloneMesh('enemy_heavy', `heavy_${Date.now()}`) : null;
 
-        // Position at spawn point, raised to sit on ground
+        if (model) {
+            model.position = this.position.clone();
+            model.position.y = 0;
+            this.setMesh(model);
+            return;
+        }
+
+        // Geometric fallback - large dark red box
+        const body = MeshBuilder.CreateBox(`heavy_${Date.now()}`, { width: 2, height: 3, depth: 2 }, this.scene);
         body.position = this.position.clone();
-        body.position.y = 1.5; // Half height (3/2)
+        body.position.y = 1.5;
 
-        // Dark red material - intimidating look
         const mat = new StandardMaterial('heavyMat', this.scene);
         mat.diffuseColor = new Color3(0.5, 0.1, 0.1);
         mat.emissiveColor = new Color3(0.15, 0.03, 0.03);
         body.material = mat;
 
-        // Add "eye" indicator - lower position for intimidating angle
-        const eye = MeshBuilder.CreateSphere(
-            'heavyEye',
-            { diameter: 0.4 },
-            this.scene
-        );
+        const eye = MeshBuilder.CreateSphere('heavyEye', { diameter: 0.4 }, this.scene);
         eye.parent = body;
         eye.position = new Vector3(0, 0.3, 0.9);
-
         const eyeMat = new StandardMaterial('eyeMat', this.scene);
         eyeMat.diffuseColor = new Color3(1, 0.3, 0);
         eyeMat.emissiveColor = new Color3(0.5, 0.1, 0);
