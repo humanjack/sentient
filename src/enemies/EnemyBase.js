@@ -118,6 +118,15 @@ export class EnemyBase {
         // Dispose mesh after short delay (for death animation later)
         setTimeout(() => {
             if (this.mesh) {
+                // Dispose materials to prevent memory leaks
+                if (this.mesh.material) {
+                    this.mesh.material.dispose();
+                }
+                // Dispose child mesh materials
+                const children = this.mesh.getChildMeshes ? this.mesh.getChildMeshes() : [];
+                for (const child of children) {
+                    if (child.material) child.material.dispose();
+                }
                 this.mesh.dispose();
                 this.mesh = null;
             }

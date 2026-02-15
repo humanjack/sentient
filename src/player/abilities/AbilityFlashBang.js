@@ -150,6 +150,7 @@ export class AbilityFlashBang extends Ability {
 
             if (elapsed >= duration) {
                 clearInterval(animInterval);
+                if (mat) mat.dispose();
                 flash.dispose();
             }
         }, 16);

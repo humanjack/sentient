@@ -37,6 +37,34 @@ export class EnemySpawner {
 
         // Spawn tracking
         this.enemyCounter = 0;
+
+        // Difficulty scaling
+        this.currentWaveNumber = 1;
+    }
+
+    /**
+     * Get wave difficulty multipliers. Scaling starts after wave 10.
+     * @param {number} waveNumber
+     * @returns {Object} { health, speed, damage }
+     */
+    getWaveMultipliers(waveNumber) {
+        if (waveNumber <= 10) {
+            return { health: 1, speed: 1, damage: 1 };
+        }
+        const w = waveNumber - 10;
+        return {
+            health: 1 + w * 0.05,
+            speed: 1 + w * 0.02,
+            damage: 1 + w * 0.03,
+        };
+    }
+
+    /**
+     * Set the current wave number for difficulty scaling.
+     * @param {number} waveNumber
+     */
+    setWaveNumber(waveNumber) {
+        this.currentWaveNumber = waveNumber;
     }
 
     /**
@@ -72,6 +100,15 @@ export class EnemySpawner {
                 options.name = `Grunt_${this.enemyCounter}`;
                 enemy = new EnemyGrunt(this.scene, position, options);
                 break;
+        }
+
+        // Apply difficulty scaling
+        const multipliers = this.getWaveMultipliers(this.currentWaveNumber);
+        if (multipliers.health !== 1 || multipliers.speed !== 1 || multipliers.damage !== 1) {
+            enemy.maxHealth = Math.round(enemy.maxHealth * multipliers.health);
+            enemy.health = enemy.maxHealth;
+            enemy.speed *= multipliers.speed;
+            enemy.damage = Math.round(enemy.damage * multipliers.damage);
         }
 
         this.activeEnemies.push(enemy);
