@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
     "@babylonjs/loaders": "^7.0.0"
   },
   "devDependencies": {
+    "jsdom": "^28.0.0",
     "vite": "^5.0.0",
     "vitest": "^4.0.18"
   }

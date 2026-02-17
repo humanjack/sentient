@@ -13,6 +13,8 @@ import { PauseMenuUI } from '../ui/PauseMenuUI.js';
 import { TutorialHints } from '../ui/TutorialHints.js';
 import { PlayerHealth } from '../player/PlayerHealth.js';
 import { AgentSelectUI } from '../ui/AgentSelectUI.js';
+import { ComboSystem } from './ComboSystem.js';
+import { WaveStatsUI, WaveStats } from '../ui/WaveStatsUI.js';
 
 export class GameManager {
     // Singleton instance
@@ -120,7 +122,26 @@ export class GameManager {
             onControlsChanged: (scheme) => this.handleControlsChanged(scheme),
         });
 
+        // Combo system
+        this.comboSystem = new ComboSystem();
+        this.comboSystem.onComboChanged = (count) => this.handleComboChanged(count);
+
+        // Wave stats tracking
+        this.waveStats = new WaveStats();
+        this.waveStatsUI = new WaveStatsUI(this.scene);
+
         console.log('GameManager initialized with all UI systems');
+    }
+
+    /**
+     * Handle combo count change — show combo text on HUD.
+     * @param {number} count
+     */
+    handleComboChanged(count) {
+        if (count >= 2) {
+            const multiplier = this.comboSystem.getScoreMultiplier();
+            this.hud.showMessage(`${count}x COMBO!  (${multiplier.toFixed(2)}x score)`, 1500);
+        }
     }
 
     /**
@@ -180,6 +201,13 @@ export class GameManager {
     handleCreditsChanged(credits) {
         this.hud.updateCredits(credits);
 
+        // Track credits earned for wave stats
+        if (this.waveStats && this._lastCredits !== undefined) {
+            const diff = credits - this._lastCredits;
+            if (diff > 0) this.waveStats.creditsEarned += diff;
+        }
+        this._lastCredits = credits;
+
         // Update buy menu if open
         if (this.buyPhase && this.buyPhase.isMenuOpen()) {
             this.buyPhase.refreshCredits();
@@ -210,6 +238,10 @@ export class GameManager {
      */
     handlePlayerDamage(amount) {
         this.hud.showDamageFlash();
+        // Track damage for wave stats
+        if (this.waveStats) {
+            this.waveStats.damageTaken += amount;
+        }
     }
 
     /**
@@ -297,6 +329,17 @@ export class GameManager {
             this.buyPhase.close();
         }
 
+        // Set wave number for difficulty scaling
+        if (this.spawner) {
+            this.spawner.setWaveNumber(wave);
+        }
+
+        // Reset wave stats
+        this.waveStats.reset();
+
+        // Reset combo
+        this.comboSystem.reset();
+
         if (wave > 1) {
             this.hud.showMessage(`Wave ${wave}!`, 2000);
         }
@@ -307,8 +350,11 @@ export class GameManager {
      * @param {number} wave - Completed wave number
      */
     handleWaveComplete(wave) {
-        // Wave bonus is now added by WaveManager via ScoreManager
-        this.hud.showMessage('Wave Complete!', 2500);
+        // Finalize wave stats
+        this.waveStats.endTime = performance.now();
+
+        // Show post-wave stats screen
+        this.waveStatsUI.show(wave, this.waveStats, 3500);
 
         // Show wave bonus popup
         const bonus = wave * 500;
@@ -503,6 +549,7 @@ export class GameManager {
         this.gameState = 'playing';
         this.totalKills = 0;
         this.isPaused = false;
+        this._lastCredits = 0;
 
         // Show HUD
         this.hud.show();
@@ -534,10 +581,19 @@ export class GameManager {
     onEnemyKilled(enemy) {
         this.totalKills++;
 
-        console.log(`Kill #${this.totalKills}!`);
+        // Register combo kill and apply score multiplier
+        this.comboSystem.registerKill();
+        const multiplier = this.comboSystem.getScoreMultiplier();
 
-        // Show kill reward popup
-        this.hud.showPointPopup(100, '#ffff66');
+        // Track wave stats
+        this.waveStats.enemiesKilled++;
+
+        console.log(`Kill #${this.totalKills}! (combo: ${this.comboSystem.comboCount}, mult: ${multiplier.toFixed(2)}x)`);
+
+        // Show kill reward popup (with combo multiplier applied)
+        const basePoints = 100;
+        const points = Math.round(basePoints * multiplier);
+        this.hud.showPointPopup(points, multiplier > 1 ? '#ff8844' : '#ffff66');
 
         // Add kill feed entry
         const weaponName = this.getWeapon ? this.getWeapon().name : 'Unknown';
@@ -619,6 +675,11 @@ export class GameManager {
                 }
             }
             return;
+        }
+
+        // Update combo system
+        if (this.comboSystem) {
+            this.comboSystem.update();
         }
 
         // Update spawner (which updates all enemies)
