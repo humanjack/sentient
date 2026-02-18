@@ -10,6 +10,7 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { EnemyBase } from './EnemyBase.js';
 import { CameraTarget } from '../camera/CameraTarget.js';
 import { GameManager } from '../gameflow/GameManager.js';
+import { AssetLoader } from '../core/AssetLoader.js';
 
 export class EnemyBoss extends EnemyBase {
     /**
@@ -63,33 +64,34 @@ export class EnemyBoss extends EnemyBase {
      * Large purple box placeholder.
      */
     createMesh() {
-        // Create body (large purple box, 3x4x3)
+        const loader = AssetLoader.getInstance();
+        if (loader && loader.hasAsset('enemy_boss')) {
+            const model = loader.createInstance('enemy_boss', `boss_${Date.now()}`);
+            if (model) {
+                model.position = this.position.clone();
+                this.setMesh(model);
+                return;
+            }
+        }
+
+        // Fallback: procedural large purple box
         const body = MeshBuilder.CreateBox(
             `boss_${Date.now()}`,
             { width: 3, height: 4, depth: 3 },
             this.scene
         );
-
-        // Position at spawn point
         body.position = this.position.clone();
-        body.position.y = 2; // Half height
+        body.position.y = 2;
 
-        // Purple material - boss look
         const mat = new StandardMaterial('bossMat', this.scene);
         mat.diffuseColor = new Color3(0.5, 0.1, 0.6);
         mat.emissiveColor = new Color3(0.15, 0.03, 0.2);
         body.material = mat;
 
-        // Add multiple eyes for intimidating look
         for (let i = 0; i < 3; i++) {
-            const eye = MeshBuilder.CreateSphere(
-                `bossEye_${i}`,
-                { diameter: 0.4 },
-                this.scene
-            );
+            const eye = MeshBuilder.CreateSphere(`bossEye_${i}`, { diameter: 0.4 }, this.scene);
             eye.parent = body;
             eye.position = new Vector3(-0.6 + i * 0.6, 0.8, 1.4);
-
             const eyeMat = new StandardMaterial(`eyeMat_${i}`, this.scene);
             eyeMat.diffuseColor = new Color3(1, 0, 0.5);
             eyeMat.emissiveColor = new Color3(0.8, 0, 0.4);

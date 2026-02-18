@@ -7,6 +7,7 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { EnemyBase } from './EnemyBase.js';
+import { AssetLoader } from '../core/AssetLoader.js';
 import { GameManager } from '../gameflow/GameManager.js';
 
 export class EnemySniper extends EnemyBase {
@@ -49,32 +50,33 @@ export class EnemySniper extends EnemyBase {
      * Yellow box placeholder.
      */
     createMesh() {
-        // Create body (yellow box, 1x2x1)
+        const loader = AssetLoader.getInstance();
+        if (loader && loader.hasAsset('enemy_sniper')) {
+            const model = loader.createInstance('enemy_sniper', `sniper_${Date.now()}`);
+            if (model) {
+                model.position = this.position.clone();
+                this.setMesh(model);
+                return;
+            }
+        }
+
+        // Fallback: procedural yellow box
         const body = MeshBuilder.CreateBox(
             `sniper_${Date.now()}`,
             { width: 1, height: 2, depth: 1 },
             this.scene
         );
-
-        // Position at spawn point, raised to sit on ground
         body.position = this.position.clone();
-        body.position.y = 1; // Half height
+        body.position.y = 1;
 
-        // Yellow material - alerting look
         const mat = new StandardMaterial('sniperMat', this.scene);
         mat.diffuseColor = new Color3(0.8, 0.7, 0.2);
         mat.emissiveColor = new Color3(0.2, 0.15, 0.05);
         body.material = mat;
 
-        // Add "eye" / scope indicator
-        const eye = MeshBuilder.CreateSphere(
-            'sniperEye',
-            { diameter: 0.25 },
-            this.scene
-        );
+        const eye = MeshBuilder.CreateSphere('sniperEye', { diameter: 0.25 }, this.scene);
         eye.parent = body;
         eye.position = new Vector3(0, 0.5, 0.5);
-
         const eyeMat = new StandardMaterial('eyeMat', this.scene);
         eyeMat.diffuseColor = new Color3(1, 0, 0);
         eyeMat.emissiveColor = new Color3(0.5, 0, 0);
