@@ -131,6 +131,7 @@ export class AbilityUltimate extends Ability {
 
             if (elapsed >= duration) {
                 clearInterval(animInterval);
+                if (mat) mat.dispose();
                 ring.dispose();
             }
         }, 16);
@@ -169,6 +170,7 @@ export class AbilityUltimate extends Ability {
 
             if (elapsed >= duration) {
                 clearInterval(animInterval);
+                if (mat) mat.dispose();
                 sphere.dispose();
             }
         }, 16);
@@ -223,6 +225,7 @@ export class AbilityUltimate extends Ability {
 
             if (elapsed >= lifetime || particle.position.y < 0) {
                 clearInterval(animInterval);
+                if (mat) mat.dispose();
                 particle.dispose();
             }
         }, 16);

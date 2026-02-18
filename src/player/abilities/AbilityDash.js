@@ -111,7 +111,10 @@ export class AbilityDash extends Ability {
 
             if (elapsed >= fadeTime) {
                 clearInterval(fadeInterval);
-                trails.forEach(t => t.mesh.dispose());
+                trails.forEach(t => {
+                    if (t.mat) t.mat.dispose();
+                    t.mesh.dispose();
+                });
             }
         }, 16);
     }

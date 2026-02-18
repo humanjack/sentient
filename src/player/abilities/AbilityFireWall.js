@@ -136,6 +136,7 @@ export class AbilityFireWall extends Ability {
 
                 if (fadeElapsed >= 300) {
                     clearInterval(fadeInterval);
+                    if (mat) mat.dispose();
                     wall.dispose();
                 }
             }, 16);
@@ -209,6 +210,7 @@ export class AbilityFireWall extends Ability {
 
             if (elapsed >= lifetime) {
                 clearInterval(animInterval);
+                if (mat) mat.dispose();
                 particle.dispose();
             }
         }, 16);

@@ -100,8 +100,11 @@ export class WeaponRocketLauncher extends Weapon {
      * @param {Vector3} position - Explosion center
      */
     explodeRocket(projectile, position) {
-        // Remove projectile mesh
+        // Remove projectile mesh and material
         if (projectile.mesh) {
+            if (projectile.mesh.material) {
+                projectile.mesh.material.dispose();
+            }
             projectile.mesh.dispose();
         }
 

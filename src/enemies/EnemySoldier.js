@@ -157,6 +157,7 @@ export class EnemySoldier extends EnemyBase {
 
         // Remove after brief moment
         setTimeout(() => {
+            if (flashMat) flashMat.dispose();
             flash.dispose();
         }, 100);
     }
