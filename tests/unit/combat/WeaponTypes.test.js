@@ -16,7 +16,6 @@ describe('WeaponPistol', () => {
         expect(w.damage).toBe(25);
         expect(w.fireRate).toBe(400);
         expect(w.maxAmmo).toBe(Infinity);
-        // reloadTime: 0 || 1500 in base constructor, but pistol overrides reload()
         expect(w.reloadTime).toBe(1500);
         expect(w.range).toBe(100);
     });
@@ -26,8 +25,8 @@ describe('WeaponPistol', () => {
         w.reload(); // should do nothing
         expect(w.isReloading).toBe(false);
     });
-    it('getAmmoString returns ∞', () => {
-        expect(new WeaponPistol().getAmmoString()).toBe('∞');
+    it('getAmmoString returns \u221e', () => {
+        expect(new WeaponPistol().getAmmoString()).toBe('\u221e');
     });
 });
 

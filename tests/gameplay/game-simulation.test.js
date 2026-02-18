@@ -36,7 +36,7 @@ describe('Game Simulation', () => {
         sm.addCredits(1000);
         expect(sm.score).toBe(1000); // 500 + wave bonus 500
 
-        // End buy phase → wave 2
+        // End buy phase -> wave 2
         wm.endBuyPhase();
         expect(wm.currentWave).toBe(2);
         expect(wm.waveState).toBe('inProgress');

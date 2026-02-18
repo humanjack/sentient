@@ -37,7 +37,7 @@ describe('WaveManager', () => {
         expect(wm.waveState).toBe('completed');
     });
 
-    it('completed → buyPhase after pause', () => {
+    it('completed -> buyPhase after pause', () => {
         wm.startNextWave();
         wm.enemiesRemaining = 0;
         wm.onWaveCleared();

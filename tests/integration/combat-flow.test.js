@@ -3,7 +3,7 @@ import { Weapon } from '../../src/combat/Weapon.js';
 import { DamageSystem } from '../../src/combat/DamageSystem.js';
 
 describe('Combat Flow Integration', () => {
-    it('fire weapon → processHit → enemy takes damage', () => {
+    it('fire weapon -> processHit -> enemy takes damage', () => {
         vi.spyOn(performance, 'now').mockReturnValue(1000);
 
         const weapon = new Weapon({ damage: 40, fireRate: 100, maxAmmo: 10 });
