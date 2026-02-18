@@ -36,6 +36,9 @@ import { AudioManager } from '../audio/AudioManager.js';
 // Effects
 import { EffectsManager } from '../effects/EffectsManager.js';
 
+// Asset loading
+import { AssetLoader } from './AssetLoader.js';
+
 export class Game {
     constructor(engine, canvas) {
         this.engine = engine;
@@ -83,6 +86,9 @@ export class Game {
             new Vector3(-22, 0, 0),
         ];
 
+        // Initialize asset loader
+        this.assetLoader = AssetLoader.getInstance(this.scene);
+
         // Setup input
         this.setupInput();
 
@@ -91,6 +97,9 @@ export class Game {
         this.createArena();
         this.createPlayer();
         this.setupPlayerCamera();
+
+        // Start async asset preloading (models will replace placeholders when ready)
+        this.preloadAssets();
 
         // Create weapon
         this.setupWeapon();
@@ -113,6 +122,19 @@ export class Game {
 
         console.log('=== Enemy Eyes ===');
         console.log('Click PLAY to start the game!');
+    }
+
+    /**
+     * Preload 3D model assets. Non-blocking — game works with procedural
+     * fallbacks while assets load.
+     */
+    async preloadAssets() {
+        try {
+            await this.assetLoader.preloadAll();
+            console.log('[Game] Assets preloaded successfully');
+        } catch (err) {
+            console.warn('[Game] Asset preload failed, using procedural meshes:', err.message);
+        }
     }
 
     /**
@@ -396,6 +418,18 @@ export class Game {
         this.playerNode = new TransformNode('player', this.scene);
         this.playerNode.position = new Vector3(-5, 0, -5);
 
+        // Try loaded 3D model
+        const loader = AssetLoader.getInstance();
+        if (loader && loader.hasAsset('player')) {
+            const model = loader.createInstance('player', 'playerBody');
+            if (model) {
+                model.parent = this.playerNode;
+                this.playerHealth = 100;
+                return;
+            }
+        }
+
+        // Fallback: procedural mesh
         const body = MeshBuilder.CreateCylinder('playerBody', { height: 2, diameter: 1 }, this.scene);
         body.parent = this.playerNode;
         body.position.y = 1;
@@ -447,26 +481,47 @@ export class Game {
             wall.material = wallMat;
         });
 
-        const pillar = MeshBuilder.CreateBox('pillar', { width: 2, height: 5, depth: 2 }, this.scene);
-        pillar.position = new Vector3(0, 2.5, 0);
-        const pillarMat = new StandardMaterial('pillarMat', this.scene);
-        pillarMat.diffuseColor = new Color3(0.35, 0.35, 0.4);
-        pillar.material = pillarMat;
+        // Pillar - use loaded model or fallback
+        const loader = AssetLoader.getInstance();
+        let pillar;
+        if (loader && loader.hasAsset('env_pillar')) {
+            pillar = loader.createInstance('env_pillar', 'pillar');
+            pillar.position = new Vector3(0, 0, 0);
+        } else {
+            pillar = MeshBuilder.CreateBox('pillar', { width: 2, height: 5, depth: 2 }, this.scene);
+            pillar.position = new Vector3(0, 2.5, 0);
+            const pillarMat = new StandardMaterial('pillarMat', this.scene);
+            pillarMat.diffuseColor = new Color3(0.35, 0.35, 0.4);
+            pillar.material = pillarMat;
+        }
 
+        // Crates - use loaded model or fallback
+        const cratePositions = [
+            new Vector3(-10, 0, 8),
+            new Vector3(12, 0, -5),
+            new Vector3(-8, 0, -12),
+        ];
         const crateMat = new StandardMaterial('crateMat', this.scene);
         crateMat.diffuseColor = new Color3(0.5, 0.4, 0.3);
 
-        const crate1 = MeshBuilder.CreateBox('crate1', { width: 3, height: 3, depth: 3 }, this.scene);
-        crate1.position = new Vector3(-10, 1.5, 8);
-        crate1.material = crateMat;
-
-        const crate2 = MeshBuilder.CreateBox('crate2', { width: 4, height: 2, depth: 2 }, this.scene);
-        crate2.position = new Vector3(12, 1, -5);
-        crate2.material = crateMat;
-
-        const crate3 = MeshBuilder.CreateBox('crate3', { width: 2, height: 2, depth: 4 }, this.scene);
-        crate3.position = new Vector3(-8, 1, -12);
-        crate3.material = crateMat;
+        cratePositions.forEach((pos, i) => {
+            let crate;
+            if (loader && loader.hasAsset('env_crate')) {
+                crate = loader.createInstance('env_crate', `crate${i + 1}`);
+                crate.position = pos;
+                crate.scaling.setAll(3); // Scale up for cover
+            } else {
+                const sizes = [
+                    { width: 3, height: 3, depth: 3 },
+                    { width: 4, height: 2, depth: 2 },
+                    { width: 2, height: 2, depth: 4 },
+                ];
+                crate = MeshBuilder.CreateBox(`crate${i + 1}`, sizes[i], this.scene);
+                crate.position = pos.clone();
+                crate.position.y = sizes[i].height / 2;
+                crate.material = crateMat;
+            }
+        });
 
         const spawnMat = new StandardMaterial('spawnMat', this.scene);
         spawnMat.diffuseColor = new Color3(0.8, 0.2, 0.2);

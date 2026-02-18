@@ -6,6 +6,7 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { AssetLoader } from '../core/AssetLoader.js';
 
 export class PlayerController {
     constructor(scene, inputManager) {
@@ -58,7 +59,19 @@ export class PlayerController {
         this.playerNode = new TransformNode('player', this.scene);
         this.playerNode.position = new Vector3(0, 0, 0);
 
-        // Main body cylinder
+        // Try to use loaded 3D model
+        const loader = AssetLoader.getInstance();
+        if (loader && loader.hasAsset('player')) {
+            const model = loader.createInstance('player', 'playerModel');
+            if (model) {
+                model.parent = this.playerNode;
+                model.position.y = 0;
+                this.mesh = model;
+                return;
+            }
+        }
+
+        // Fallback: procedural capsule
         const body = MeshBuilder.CreateCylinder(
             'playerBody',
             { height: this.height - this.radius * 2, diameter: this.radius * 2, tessellation: 16 },
@@ -67,7 +80,6 @@ export class PlayerController {
         body.parent = this.playerNode;
         body.position.y = this.height / 2;
 
-        // Top cap
         const topCap = MeshBuilder.CreateSphere(
             'playerTopCap',
             { diameter: this.radius * 2, slice: 0.5 },
@@ -76,7 +88,6 @@ export class PlayerController {
         topCap.parent = this.playerNode;
         topCap.position.y = this.height - this.radius;
 
-        // Bottom cap
         const bottomCap = MeshBuilder.CreateSphere(
             'playerBottomCap',
             { diameter: this.radius * 2, slice: 0.5 },
@@ -86,16 +97,13 @@ export class PlayerController {
         bottomCap.position.y = this.radius;
         bottomCap.rotation.x = Math.PI;
 
-        // Bright blue material
         const playerMaterial = new StandardMaterial('playerMaterial', this.scene);
         playerMaterial.diffuseColor = new Color3(0.2, 0.6, 1.0);
         playerMaterial.emissiveColor = new Color3(0.05, 0.15, 0.25);
-
         body.material = playerMaterial;
         topCap.material = playerMaterial;
         bottomCap.material = playerMaterial;
 
-        // Direction indicator (yellow box showing forward)
         const indicator = MeshBuilder.CreateBox(
             'directionIndicator',
             { width: 0.2, height: 0.2, depth: 0.5 },
@@ -103,7 +111,6 @@ export class PlayerController {
         );
         indicator.parent = this.playerNode;
         indicator.position = new Vector3(0, this.height / 2, this.radius + 0.1);
-
         const indicatorMat = new StandardMaterial('indicatorMat', this.scene);
         indicatorMat.diffuseColor = new Color3(1.0, 0.8, 0.2);
         indicatorMat.emissiveColor = new Color3(0.2, 0.15, 0.0);
