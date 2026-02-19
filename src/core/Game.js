@@ -744,7 +744,16 @@ export class Game {
             if (this.keys['ArrowRight']) mx = 1;
         }
 
-        if (mx === 0 && mz === 0) return;
+        if (mx === 0 && mz === 0) {
+            // Idle — settle walk animation
+            this.playerWalkPhase = this.playerWalkPhase || 0;
+            this.playerNode.position.y = 0;
+            // Smooth rotation.z back to 0
+            if (this.playerNode.rotation) {
+                this.playerNode.rotation.z *= 0.85;
+            }
+            return;
+        }
 
         const len = Math.sqrt(mx * mx + mz * mz);
         mx /= len;
@@ -785,6 +794,15 @@ export class Game {
                 pos.z = slideZ;
             }
         }
+
+        // Rotate player to face movement direction
+        const angle = Math.atan2(mx, mz);
+        this.playerNode.rotation.y = angle;
+
+        // Walk bobbing animation
+        this.playerWalkPhase = (this.playerWalkPhase || 0) + dt * 10;
+        this.playerNode.position.y = Math.abs(Math.sin(this.playerWalkPhase)) * 0.12;
+        this.playerNode.rotation.z = Math.sin(this.playerWalkPhase) * 0.06;
     }
 
     collidesWithAny(x, z) {

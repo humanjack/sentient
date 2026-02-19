@@ -14,11 +14,11 @@ export class PlayerCamera {
         this.scene = scene;
         this.getPlayerPosition = getPlayerPosition;
 
-        // Camera offset from player (behind and above)
-        this.offset = new Vector3(0, 8, -12);
+        // Camera offset from player (behind and above — see full body)
+        this.offset = new Vector3(0, 12, -16);
 
         // Look ahead distance
-        this.lookAheadDistance = 10;
+        this.lookAheadDistance = 5;
 
         // Create the camera
         this.camera = new UniversalCamera('playerCamera', new Vector3(0, 10, -15), scene);
