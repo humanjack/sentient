@@ -200,6 +200,8 @@ export class EnemyHeavy extends EnemyBase {
         if (Math.random() < 0.02) {
             this.stompEffect();
         }
+
+        this.animateWalk(deltaTime, true);
     }
 
     /**

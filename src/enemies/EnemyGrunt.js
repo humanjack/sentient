@@ -162,6 +162,9 @@ export class EnemyGrunt extends EnemyBase {
         // Rotate to face player
         const angle = Math.atan2(direction.x, direction.z);
         this.mesh.rotation.y = angle;
+
+        // Walk animation
+        this.animateWalk(deltaTime, true);
     }
 
     /**

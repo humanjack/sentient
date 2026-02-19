@@ -217,6 +217,8 @@ export class EnemySoldier extends EnemyBase {
         const moveAmount = this.speed * deltaTime;
         myPos.x += direction.x * moveAmount;
         myPos.z += direction.z * moveAmount;
+
+        this.animateWalk(deltaTime, true);
     }
 
     /**

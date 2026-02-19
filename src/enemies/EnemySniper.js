@@ -241,6 +241,7 @@ export class EnemySniper extends EnemyBase {
             const moveAmount = this.speed * deltaTime;
             myPos.x -= direction.x * moveAmount;
             myPos.z -= direction.z * moveAmount;
+            this.animateWalk(deltaTime, true);
             return;
         }
 
@@ -249,8 +250,10 @@ export class EnemySniper extends EnemyBase {
             const moveAmount = this.speed * deltaTime;
             myPos.x += direction.x * moveAmount;
             myPos.z += direction.z * moveAmount;
+            this.animateWalk(deltaTime, true);
             return;
         }
+        this.animateWalk(deltaTime, false);
 
         // In optimal range - start shooting if cooldown ready
         if (this.attackCooldown <= 0) {

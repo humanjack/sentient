@@ -508,11 +508,13 @@ export class EnemyBoss extends EnemyBase {
         }
 
         // Move toward player slowly
-        if (distance > this.attacks.slam.range) {
+        const isMoving = distance > this.attacks.slam.range;
+        if (isMoving) {
             const moveAmount = this.speed * deltaTime;
             myPos.x += direction.x * moveAmount;
             myPos.z += direction.z * moveAmount;
         }
+        this.animateWalk(deltaTime, isMoving);
     }
 
     /**
