@@ -44,26 +44,29 @@ const ASSET_MANIFEST = {
 
 /**
  * Scale factors for each asset to fit the game world properly.
+ * Calculated from raw model heights to match game expectations:
+ *   Player ~2 units tall, Grunt ~2, Soldier ~2.5, Sniper ~2.2,
+ *   Heavy ~3, Boss ~4, Weapons ~0.5-0.8, Barrel ~1.5, Wall ~4
  */
 const ASSET_SCALES = {
-    'player': 1.0,
-    'player_blaze': 1.0,
-    'player_frost': 1.0,
-    'player_shadow': 0.01,  // character-soldier is large, scale down
-    'enemy_grunt': 1.0,
-    'enemy_soldier': 0.01,  // character-soldier
-    'enemy_sniper': 2.0,    // turret_single is small
-    'enemy_heavy': 2.0,     // turret_double
-    'enemy_boss': 0.02,     // statue is large
+    'player': 2.5,          // raw 0.79 → target 2.0
+    'player_blaze': 2.5,    // raw 0.79 → target 2.0
+    'player_frost': 2.5,    // raw 0.79 → target 2.0
+    'player_shadow': 2.5,   // same character model
+    'enemy_grunt': 2.4,     // raw 0.84 → target 2.0
+    'enemy_soldier': 3.0,   // raw 0.84 → target 2.5
+    'enemy_sniper': 2.4,    // raw 0.90 → target 2.2
+    'enemy_heavy': 4.3,     // raw 0.70 → target 3.0
+    'enemy_boss': 3.0,      // raw 1.34 → target 4.0
     'weapon_pistol': 3.0,
     'weapon_rifle': 3.0,
     'weapon_shotgun': 3.0,
     'weapon_smg': 3.0,
     'weapon_sniper_rifle': 3.0,
     'weapon_rocket_launcher': 3.0,
-    'env_barrel': 2.0,
+    'env_barrel': 6.0,      // raw 0.25 → target 1.5
     'env_crate': 2.0,
-    'env_wall': 2.0,
+    'env_wall': 4.0,        // raw 1.0 → target 4.0
     'env_pillar': 1.0,
 };
 
@@ -88,6 +91,7 @@ export class AssetLoader {
 
     /**
      * Preload all assets from the manifest.
+     * Loads sequentially to avoid blob URL race conditions with textures.
      * @returns {Promise<void>}
      */
     async preloadAll() {
