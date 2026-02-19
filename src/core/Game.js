@@ -132,9 +132,35 @@ export class Game {
         try {
             await this.assetLoader.preloadAll();
             console.log('[Game] Assets preloaded successfully');
+            // Replace player procedural mesh with loaded 3D model
+            this.upgradePlayerMesh();
         } catch (err) {
             console.warn('[Game] Asset preload failed, using procedural meshes:', err.message);
         }
+    }
+
+    /**
+     * Replace the player's procedural cylinder with the loaded 3D model.
+     * Called after assets finish preloading.
+     */
+    upgradePlayerMesh() {
+        if (!this.playerNode) return;
+        const loader = AssetLoader.getInstance();
+        if (!loader || !loader.hasAsset('player')) return;
+
+        const model = loader.createInstance('player', 'playerBody3D');
+        if (!model) return;
+
+        // Remove old procedural meshes
+        const oldChildren = this.playerNode.getChildMeshes();
+        oldChildren.forEach(child => {
+            child.dispose();
+        });
+
+        // Attach 3D model
+        model.parent = this.playerNode;
+        model.position.y = 0;
+        console.log('[Game] Player mesh upgraded to 3D model');
     }
 
     /**

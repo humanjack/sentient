@@ -42,6 +42,10 @@ export class EnemyBase {
             offset: new Vector3(0, 1.8, 0), // Eye level
         });
 
+        // Walk animation state
+        this.walkPhase = 0;
+        this.baseY = position.y || 0;
+
         // Callbacks
         this.onDeath = options.onDeath || null;
 
@@ -174,6 +178,26 @@ export class EnemyBase {
      */
     getCameraTarget() {
         return this.cameraTarget;
+    }
+
+    /**
+     * Animate a walking/bobbing motion. Call each frame while the enemy is moving.
+     * @param {number} deltaTime
+     * @param {boolean} isMoving - Whether the enemy moved this frame
+     */
+    animateWalk(deltaTime, isMoving) {
+        if (!this.mesh) return;
+        if (isMoving) {
+            this.walkPhase += deltaTime * 8; // 8 Hz walk cycle
+            // Bob up/down
+            this.mesh.position.y = this.baseY + Math.abs(Math.sin(this.walkPhase)) * 0.15;
+            // Slight side-to-side tilt
+            this.mesh.rotation.z = Math.sin(this.walkPhase) * 0.08;
+        } else {
+            // Settle back to base position
+            this.mesh.position.y = this.baseY;
+            this.mesh.rotation.z = 0;
+        }
     }
 
     /**
